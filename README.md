@@ -25,18 +25,18 @@ Not deployed yet — local development only.
 
 ## Tech stack
 
-| Layer       | Choice                                                  | Why                                                                                                                                                  |
-| ----------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework   | Next.js 16 (App Router) + TypeScript                    | Server route handlers keep provider API keys off the client without standing up a separate backend                                                   |
-| UI          | Tailwind CSS v4 + shadcn/ui (Radix primitives) + Lucide | Fast, consistent primitives — built into an editorial "research workspace / case file" visual language rather than shipped as default shadcn         |
-| Motion      | Motion for React                                        | Transitions that carry meaning (research progress, evidence appearing, section changes) — not decoration                                             |
-| Forms       | React Hook Form + Zod                                   | One shared validation layer between the setup form and the data model                                                                                |
-| State       | Zustand                                                 | Cross-component investigation state (setup, progress, results) — form-local state stays in RHF                                                       |
-| Validation  | Zod                                                     | Every AI-generated structured object (findings, sources) is Zod-validated before it enters app state — malformed evidence is never silently accepted |
-| Research    | Exa `/search` (deep + structured output)                | Grounded claim/evidence/citation output with real progress streaming, at a transparent flat cost per call — no custom crawler                        |
-| Synthesis   | Mistral (primary) + Groq (fallback) — testing phase     | Cost control during development; see `CLAUDE.md`'s "Tech Stack — Active Overrides" for the reasoning and what this reverts to at deployment          |
-| Persistence | localStorage                                            | No accounts or cross-device sync needed for a single-user V1                                                                                         |
-| Deployment  | Vercel (planned)                                        | Native Next.js support                                                                                                                               |
+| Layer       | Choice                                                  | Why                                                                                                                                                                             |
+| ----------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework   | Next.js 16 (App Router) + TypeScript                    | Server route handlers keep provider API keys off the client without standing up a separate backend                                                                              |
+| UI          | Tailwind CSS v4 + shadcn/ui (Radix primitives) + Lucide | Fast, consistent primitives — built into a dark "case file" noir visual language (see `CLAUDE.md`'s "Visual Direction — Active Override") rather than shipped as default shadcn |
+| Motion      | Motion for React                                        | Transitions that carry meaning (research progress, evidence appearing, section changes) — not decoration                                                                        |
+| Forms       | React Hook Form + Zod                                   | One shared validation layer between the setup form and the data model                                                                                                           |
+| State       | Zustand                                                 | Cross-component investigation state (setup, progress, results) — form-local state stays in RHF                                                                                  |
+| Validation  | Zod                                                     | Every AI-generated structured object (findings, sources) is Zod-validated before it enters app state — malformed evidence is never silently accepted                            |
+| Research    | Exa `/search` (deep + structured output)                | Grounded claim/evidence/citation output with real progress streaming, at a transparent flat cost per call — no custom crawler                                                   |
+| Synthesis   | Mistral (primary) + Groq (fallback) — testing phase     | Cost control during development; see `CLAUDE.md`'s "Tech Stack — Active Overrides" for the reasoning and what this reverts to at deployment                                     |
+| Persistence | localStorage                                            | No accounts or cross-device sync needed for a single-user V1                                                                                                                    |
+| Deployment  | Vercel (planned)                                        | Native Next.js support                                                                                                                                                          |
 
 ## Local setup
 
@@ -55,12 +55,12 @@ checks CI does.
 
 ```
 Browser
-  → Next.js App Router  (/, /investigate, /investigate/progress)
+  → Next.js App Router  (/, /investigate, /investigate/progress, /investigate/results)
   → POST /api/investigate  (Next.js Route Handler)
       → Exa deep search — one call per selected investigation goal, streamed
       → Mistral synthesis (Groq fallback) — structured, Zod-validated findings
   ← newline-delimited progress + result events, streamed back
-  → localStorage  (setup, results, follow-up — persisted client-side)
+  → localStorage  (setup + result, persisted client-side via Zustand)
 ```
 
 The research pipeline streams real progress to the browser over a single held-open request
@@ -73,11 +73,16 @@ git history) — ask the maintainer if you need them.
 
 ## Known limitations / what's next
 
-- Built so far: the landing page, the investigation setup screen (company/role/JD, goal
-  selection, freshness, live summary), and the server-side research pipeline
-  (`POST /api/investigate` — Exa + Mistral/Groq, evidence classification, fact vs. inference).
-- Not yet wired together: the setup screen doesn't call the pipeline yet — `/investigate/progress`
-  is still a placeholder. That, plus the results dashboard, is next.
+- Built and working end-to-end: the landing page, the investigation setup screen
+  (company/role/JD, goal selection, freshness), the full server-side research pipeline
+  (`POST /api/investigate` — Exa + Mistral/Groq, evidence classification, fact vs. inference),
+  real per-goal progress on `/investigate/progress`, and a 6-tab results dashboard (Company,
+  People, Structure, Relevant work, Evidence, Open questions).
+- In progress: a full visual reskin to a dark "case file" design (see `CLAUDE.md`'s "Visual
+  Direction — Active Override") — the color/font foundation has landed, page-level layouts are
+  still being rebuilt to match.
+- Deliberately deferred past V1: follow-up questions on a finished investigation, and
+  reload/resume after a page refresh.
 - No accounts, payments, or team collaboration in V1 — a single local investigation per
   browser, by design.
 - No job scraping, discovery, or auto-apply — CercaCia investigates a role you already have,
