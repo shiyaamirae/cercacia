@@ -1,11 +1,9 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  NOT_ENOUGH_EVIDENCE,
+  sourceCountLabel,
+} from "@/components/investigation/section-copy";
 import type { CompanyBriefing } from "@/types/investigation";
-
-const NOT_ENOUGH_EVIDENCE = "Not enough evidence to identify this yet.";
-
-function sourceCountLabel(count: number): string {
-  return `${count} source${count === 1 ? "" : "s"} on file`;
-}
 
 type CompanyBriefingSectionProps = {
   companyBriefing: CompanyBriefing;

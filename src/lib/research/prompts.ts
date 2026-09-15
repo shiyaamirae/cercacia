@@ -152,7 +152,45 @@ Rules:
     come from generic job-posting language, restated traits often can.
   - Every companyTags/idealFitSkills/roleHighlights item must carry at least one real
     sourceRef from the pool. If nothing in the pool supports an item, leave it out rather than
-    include it unsupported.`;
+    include it unsupported.
+- Across every dashboard section below (people, structure, relevantWork), every short text
+  field (note, summary, point) must be brief — 1-3 short sentences, never a paragraph. This is
+  a scannable dashboard, not a report. The schema enforces a hard character limit on these
+  fields as a backstop; write to fit inside it rather than getting truncated.
+- Also produce a people object, the dashboard's second section:
+  - keyPeople (up to 5): the CEO and other leaders specifically relevant to this role — match
+    seniority to what this role would actually report into or work with (e.g. a Chief Product
+    Officer or VP Design for a design role, a Chief People Officer for an HR role), not a
+    generic leadership list. Each entry: name, title, and a one-line note on why they're
+    relevant to this candidate. Never invent a name or title. If you cannot find a real,
+    sourced person in a role like this, omit the entry rather than guess one that sounds
+    plausible.
+  - hiringContacts (up to 3): people plausibly responsible for hiring this specific role — a
+    hiring manager who posted about the opening, a recruiter named in the posting or on
+    LinkedIn, someone the research connects to this specific hire. A generic "Head of Talent"
+    found elsewhere does not qualify without a real, specific connection to this role's hiring.
+  - Every keyPeople/hiringContacts entry needs at least one real sourceRef.
+- Also produce a structure object, the dashboard's third section:
+  - teams (up to 5): teams or functions relevant to understanding where this role sits, each
+    with a brief, research-grounded description.
+  - orgNotes (up to 3): brief points on how the org works that a candidate should know before
+    applying — how decisions get made, team structure, reporting lines, anything a candidate
+    would want to know walking in.
+  - This section will often have less to say than the others — most companies don't publish
+    their org structure. Return fewer items, or none, rather than padding with generic
+    statements that would be true of any company.
+  - Every teams/orgNotes entry needs at least one real sourceRef.
+- Also produce a relevantWork object, the dashboard's fourth section:
+  - items (up to 5): case studies, shipped projects, or initiatives relevant to this specific
+    role — comparable product/design case studies for a design role, AI or agent projects for
+    an AI/data role, and so on. Prioritize items from roughly the last 6-12 months when the
+    evidence supports that, but recency is a preference, not something to fabricate: never
+    state or imply something is "recent" unless a real source date backs it, and never guess a
+    publishedAt to make an item look more current than it actually is — leave it null if you
+    don't know.
+  - Each item: title, a brief summary of what it is and why it's relevant to this candidate,
+    and publishedAt when a real date is available.
+  - Every item needs at least one real sourceRef.`;
 
 function formatSourcePool(pool: PooledSource[]): string {
   return pool

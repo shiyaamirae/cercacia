@@ -48,6 +48,37 @@ function validOutput(ref: string) {
         },
       ],
     },
+    people: {
+      keyPeople: [
+        {
+          name: "Jordan Lee",
+          title: "CTO",
+          note: "Publicly champions the new product line's architecture.",
+          sourceRefs: [ref],
+        },
+      ],
+      hiringContacts: [],
+    },
+    structure: {
+      teams: [
+        {
+          name: "Platform Engineering",
+          note: "Owns the systems this role would work on.",
+          sourceRefs: [ref],
+        },
+      ],
+      orgNotes: [],
+    },
+    relevantWork: {
+      items: [
+        {
+          title: "New product line launch",
+          summary: "Shipped a new industrial widget product line.",
+          publishedAt: null,
+          sourceRefs: [ref],
+        },
+      ],
+    },
     findings: [
       {
         claim: "Acme Corp launched a new product line.",
@@ -88,6 +119,9 @@ describe("synthesizeInvestigation", () => {
         "https://acme.io/news"
       );
       expect(result.result.companyBriefing.companyTags[0].sources[0].url).toBe(
+        "https://acme.io/news"
+      );
+      expect(result.result.people.keyPeople[0].sources[0].url).toBe(
         "https://acme.io/news"
       );
     }

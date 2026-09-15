@@ -4,6 +4,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MotionConfig, motion } from "motion/react";
 import { CompanyBriefingSection } from "@/components/investigation/company-briefing-section";
+import { PeopleSectionView } from "@/components/investigation/people-section";
+import { StructureSectionView } from "@/components/investigation/structure-section";
+import { RelevantWorkSectionView } from "@/components/investigation/relevant-work-section";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvestigationStore } from "@/lib/store/investigation-store";
 import { investigationResultSchema } from "@/lib/schemas/evidence";
 
@@ -109,8 +113,29 @@ export default function InvestigationResultsPage() {
           variants={reveal}
           className="mt-8"
         >
-          <h2 className="font-display mb-4 text-xl">Company briefing</h2>
-          <CompanyBriefingSection companyBriefing={result.companyBriefing} />
+          <Tabs defaultValue="company">
+            <TabsList>
+              <TabsTrigger value="company">Company</TabsTrigger>
+              <TabsTrigger value="people">People</TabsTrigger>
+              <TabsTrigger value="structure">Structure</TabsTrigger>
+              <TabsTrigger value="relevant-work">Relevant work</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="company" className="mt-6">
+              <CompanyBriefingSection
+                companyBriefing={result.companyBriefing}
+              />
+            </TabsContent>
+            <TabsContent value="people" className="mt-6">
+              <PeopleSectionView people={result.people} />
+            </TabsContent>
+            <TabsContent value="structure" className="mt-6">
+              <StructureSectionView structure={result.structure} />
+            </TabsContent>
+            <TabsContent value="relevant-work" className="mt-6">
+              <RelevantWorkSectionView relevantWork={result.relevantWork} />
+            </TabsContent>
+          </Tabs>
         </motion.section>
       </main>
     </MotionConfig>

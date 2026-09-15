@@ -555,3 +555,56 @@ structurally prevent fabricated URLs). If a live retest still shows JD leakage, 
 is a code-level filter — excluding known job-board/careers-page domains from the source pool
 used for `idealFitSkills`/`roleHighlights` specifically — not attempted here to avoid
 over-engineering ahead of confirming the prompt fix isn't already sufficient.
+
+**Update, same day:** Shiyaa re-tested live and confirmed the result set looked good — merged
+without needing the code-level filter.
+
+## 2026-09-15 — People/Structure/Relevant Work dashboard sections, with an enforced length cap
+
+**Context:** Shiyaa specified three more dashboard sections — People (CEO + role-relevant
+leadership, e.g. a CPO for a design role or Chief People Officer for an HR role, plus likely
+hiring contacts), Structure (teams, how the org works, what an applicant should know), and
+Relevant Work (case studies/shipped work/AI projects relevant to the specific role, prioritizing
+the last 6-12 months) — each its own tab. Explicit requirements: every item cited, no
+hallucinated names/dates/facts, everything brief (1-3 lines or 3 bullets per result), and asked
+directly for "proper token limits and guardrails" in the prompt, not just a request for brevity.
+
+**Chose:** Same architecture as Company Briefing — new structured, ref-constrained synthesis
+output (`buildSynthesisOutputSchema` gains `people`/`structure`/`relevantWork`, each item
+requiring `sourceRefs.min(1)`), not client-derived from `findings`. New this time: an actual
+`z.string().max(280)` cap on every note/summary/point field (`BRIEF_TEXT_MAX` in
+`evidence.ts`) — a concrete, schema-enforced backstop for "brief," on top of the prompt asking
+for it, directly answering Shiyaa's "proper token limits" ask rather than trusting prompt
+wording alone. `SYNTHESIS_PROMPT_V1` gained three new rule blocks with guardrails scoped to
+each section's actual hallucination risk: People — never invent a name/title, a hiring contact
+needs a real source specifically connecting them to hiring _this_ role, not just a generic
+title found elsewhere. Structure — most companies don't publish org structure, so return fewer
+items (or none) rather than padding with generic statements true of any company. Relevant Work
+— recency is a preference, never a claim to fabricate; no `publishedAt` guessing to make
+something look more current than it is. No new research calls needed — `people`/`case_studies`
+are already-existing investigation goals whose descriptions map directly onto People/Relevant
+Work; Structure has no dedicated goal and draws on whatever `company`/`people`/`product`
+research exists, expected to come back thin for many companies.
+
+**Why:** Same reasoning as Company Briefing (PRD §35/§36) — picking "the CEO" or "a relevant
+case study" out of unstructured `Finding` text without the model's own citation discipline in
+the loop risks exactly the ungrounded inference these guardrails exist to prevent. The new
+character cap is new precedent for this codebase: previous sections relied on prompt wording
+alone for brevity (e.g. "executiveSignal is 5-7 sentences") — Shiyaa's explicit ask for "proper
+token limits" made a schema-enforced backstop worth adding here specifically.
+
+**Impact:** `npx shadcn add tabs` — real registry item with actual files in this generation
+(unlike the earlier dead-end `form` primitive) — first real section-navigation UI on the
+dashboard (`Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` in `results/page.tsx`). This is
+Shiyaa's own simplified 4-tab IA (Company/People/Structure/Relevant work), not PRD §23's
+original 11-item nav (Overview/Company/Role/AI/People/Product/Customers/Case Studies/
+Interview/Portfolio/Evidence/Open Questions) — logged as a product simplification in
+`SHIYAA-LOG.md`. Extracted `NOT_ENOUGH_EVIDENCE`/`sourceCountLabel` into
+`components/investigation/section-copy.ts` once the same empty-state pattern was about to
+repeat a fourth time (dev.md's "third time is a pattern" refactor trigger).
+
+**Tradeoff:** Structure will legitimately come back empty or near-empty for many companies —
+by design, not a bug, but worth knowing before assuming something's broken if a real test shows
+it thin. Not yet verified live — the length cap, hallucination guardrails, and whether
+Structure/Relevant Work produce genuinely useful content (vs. mostly empty states) are all
+real end-to-end questions only a live run can answer.
