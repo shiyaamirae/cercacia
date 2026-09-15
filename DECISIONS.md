@@ -721,3 +721,13 @@ discipline as every other feature this session.
 going in; each phase gets its own build/lint/typecheck/test pass plus a `npm run dev` visual
 check, same as every UI change this session, but the overall look has not been reviewed live
 by Shiyaa yet since it spans multiple PRs.
+
+**Update, same day:** R0 (design token/font foundation — fonts, color tokens, restyled shared
+shadcn primitives) built, lint/typecheck/51 tests/build all green, Shiyaa live-checked it via
+`npm run dev` and merged (PR #19, squash, branch deleted/pruned). `main` re-verified green.
+R1 (job-posted research) is explicitly **paused**, not started — it needs a new always-on Exa
+research call per investigation (~$0.012 regardless of selected goals) to source the real
+posting-date/repost data, and that added cost was flagged for Shiyaa's explicit go-ahead
+rather than built silently, per `CLAUDE.md`'s cost-pause rule. Not yet confirmed as of this
+update — R2 onward (the actual page-layout rebuilds: manila dossier, renamed tabs, calendar
+card) have not started either, since R1's data is a dependency for R2's calendar card.
