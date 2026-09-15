@@ -4,9 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MotionConfig, motion } from "motion/react";
 import { CompanyBriefingSection } from "@/components/investigation/company-briefing-section";
-import { KeySignalCard } from "@/components/investigation/key-signal-card";
 import { useInvestigationStore } from "@/lib/store/investigation-store";
-import { selectKeySignals } from "@/lib/research/key-signals";
 import { investigationResultSchema } from "@/lib/schemas/evidence";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
@@ -54,7 +52,6 @@ export default function InvestigationResultsPage() {
   const highConfidenceCount = result.findings.filter(
     (finding) => finding.confidence === "high"
   ).length;
-  const keySignals = selectKeySignals(result.findings);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -89,13 +86,12 @@ export default function InvestigationResultsPage() {
           initial="hidden"
           animate="visible"
           variants={reveal}
-          className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-5 sm:grid-cols-4"
+          className="mt-8 grid grid-cols-3 gap-x-6 gap-y-4 border-y border-border py-5"
         >
           {[
             ["Sources", sourceCount],
             ["Findings", result.findings.length],
             ["High-confidence", highConfidenceCount],
-            ["Open questions", result.openQuestions.length],
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -115,67 +111,6 @@ export default function InvestigationResultsPage() {
         >
           <h2 className="font-display mb-4 text-xl">Company briefing</h2>
           <CompanyBriefingSection companyBriefing={result.companyBriefing} />
-        </motion.section>
-
-        <motion.section
-          custom={4}
-          initial="hidden"
-          animate="visible"
-          variants={reveal}
-          className="mt-10"
-        >
-          <h2 className="font-display mb-3 text-xl">
-            What matters most before you apply
-          </h2>
-          <p className="leading-relaxed text-foreground">
-            {result.executiveSignal}
-          </p>
-        </motion.section>
-
-        {keySignals.length > 0 && (
-          <motion.section
-            custom={5}
-            initial="hidden"
-            animate="visible"
-            variants={reveal}
-            className="mt-10"
-          >
-            <h2 className="font-display mb-4 text-xl">Key signals</h2>
-            <div className="flex flex-col gap-4">
-              {keySignals.map((finding) => (
-                <KeySignalCard key={finding.id} finding={finding} />
-              ))}
-            </div>
-          </motion.section>
-        )}
-
-        <motion.section
-          custom={6}
-          initial="hidden"
-          animate="visible"
-          variants={reveal}
-          className="mt-10"
-        >
-          <h2 className="font-display text-xl">Open questions</h2>
-          <p className="mt-1 mb-4 text-sm text-muted-foreground">
-            What the evidence didn&rsquo;t settle.
-          </p>
-          {result.openQuestions.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {result.openQuestions.map((question) => (
-                <li
-                  key={question}
-                  className="rounded-lg border border-border bg-card px-4 py-3 text-sm"
-                >
-                  {question}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No open questions were left on this case.
-            </p>
-          )}
         </motion.section>
       </main>
     </MotionConfig>
