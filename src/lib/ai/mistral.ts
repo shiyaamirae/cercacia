@@ -1,8 +1,10 @@
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 // mistral-medium/large are rate-capped to 0 req/min on this account's tier
-// (confirmed live via response headers) — ministral-3b is what's actually
-// available and working.
-const MISTRAL_MODEL = "ministral-3b-2512";
+// (confirmed live via response headers). ministral-14b is: available (30
+// req/min, ~937K tokens/min — plenty for one synthesis call per
+// investigation), and live-verified to follow the evidence/sourceRefs
+// distinction more reliably than ministral-3b did.
+const MISTRAL_MODEL = "ministral-14b-2512";
 
 export class MistralError extends Error {}
 

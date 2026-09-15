@@ -232,3 +232,33 @@ the same
 kind of quota surprise Gemini had, though Mistral's paid key (vs. Gemini's free tier) should not
 have the same low daily cap. Whether to revert to OpenAI at deployment (open item since Phase 0)
 is unaffected either way.
+
+## 2026-09-15 — Mistral model bumped from ministral-3b to ministral-14b
+
+**Context:** The Gemini→Mistral switch above shipped with `ministral-3b-2512`, the smallest
+model confirmed usable on this key's tier at the time — `mistral-large`/`medium` were both
+unusable (403 / a confirmed-live 0 req/min cap). 3b worked but was the model that produced the
+evidence/sourceRefs field confusion the prompt fix above addresses. Shiyaa asked directly whether
+`ministral-14b-2512` would help.
+
+**Options:** Keep `ministral-3b` (cheapest, fastest, already working) / bump to `ministral-14b`
+(untested at the time) / keep pushing on `mistral-medium`'s 0 req/min cap (a tier/billing
+problem, not something retrying fixes).
+
+**Chose:** `ministral-14b-2512`. Checked live first, same rigor as every other provider call in
+this build: confirmed usable (`x-ratelimit-limit-req-minute: 30`, `~937K tokens/min` — plenty for
+one synthesis call per investigation, unlike medium's 0), then ran a real end-to-end pipeline
+call against the actual Taxfix JD before committing to the change.
+
+**Why:** The live run succeeded on Mistral's first attempt (no retry, no Groq fallback needed)
+and produced a richer, cleaner result than 3b's first run: 13 findings and 13 open questions
+(vs. 9 and 5), correctly separated `evidence` (descriptive excerpts) from `sourceRefs` (clean ids)
+without needing the corrective prompt instruction to kick in, and used
+`evidence_backed_inference` vs. `fact` appropriately across different claims in the same
+result — the fact/inference distinction is the single most load-bearing product behavior
+(ProjectInst §23), so a model that holds it more reliably is worth the small rate-limit headroom
+tradeoff.
+
+**Tradeoff:** 30 req/min instead of 3b's 750 — still far more than this pipeline's one-call
+-per-investigation pattern needs, but worth knowing if investigation volume ever scales up
+significantly before a further model/tier decision.
