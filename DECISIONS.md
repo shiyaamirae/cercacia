@@ -608,3 +608,8 @@ by design, not a bug, but worth knowing before assuming something's broken if a 
 it thin. Not yet verified live — the length cap, hallucination guardrails, and whether
 Structure/Relevant Work produce genuinely useful content (vs. mostly empty states) are all
 real end-to-end questions only a live run can answer.
+
+**Update, same day:** Shiyaa ran a real end-to-end test and confirmed the results looked
+good — merged (PR #15) on that basis. Not yet exercised across multiple companies/roles, so
+the length cap and Structure's expected-thin behavior are confirmed working at least once, not
+exhaustively.
