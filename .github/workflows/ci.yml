@@ -15,9 +15,20 @@ jobs:
         with:
           fetch-depth: 2
 
+      # predicate-quantifier: without this, paths-filter's default "some" mode
+      # OR's the pattern list together — '**' alone matches every file, so the
+      # '!**/*.md' exclusion below is silently ignored and `code` is always
+      # true. 'every' requires a file to match '**' AND not match '**/*.md',
+      # which is the AND-then-subtract semantics this filter was written to
+      # express. ('some-with-excludes', the other documented fix for this
+      # exact pattern, isn't valid on this pinned dorny/paths-filter@v3 —
+      # confirmed live via the action's own error: "Valid values: every,
+      # some".) Confirmed live: a real doc-only PR (#16) ran the full verify
+      # job anyway before this fix was added.
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          predicate-quantifier: 'every'
           filters: |
             code:
               - '**'

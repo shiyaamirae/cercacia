@@ -608,3 +608,53 @@ by design, not a bug, but worth knowing before assuming something's broken if a 
 it thin. Not yet verified live — the length cap, hallucination guardrails, and whether
 Structure/Relevant Work produce genuinely useful content (vs. mostly empty states) are all
 real end-to-end questions only a live run can answer.
+
+**Update, same day:** Shiyaa ran a real end-to-end test and confirmed the results looked
+good — merged (PR #15) on that basis. Not yet exercised across multiple companies/roles, so
+the length cap and Structure's expected-thin behavior are confirmed working at least once, not
+exhaustively.
+
+## 2026-09-15 — Correction: the doc-only CI skip never actually worked
+
+**Context:** The "CI skips `verify` for doc-only changes" entry above (and every session-log
+note since) claimed the doc-only skip path was implemented and just "not yet confirmed live."
+The first genuinely doc-only PR to actually run against it (#16, a one-line `DECISIONS.md`
+edit) ran the full `verify` job anyway — checked out, `npm ci`, lint, typecheck, test, build,
+all of it, when it should have been skipped.
+
+**Root cause, confirmed via the real Actions log (not guessed):** `dorny/paths-filter`'s
+`changes` job reported `Filter code = true` with `DECISIONS.md` listed as a "matching file" —
+i.e., the exclusion never applied. `dorny/paths-filter`'s pattern-list matching defaults to
+`predicate-quantifier: 'some'` — a file is included if it matches **any** pattern in the list,
+OR'd together. The filter was written as `['**', '!**/*.md']` assuming "everything, then
+subtract markdown" (`.gitignore`-style semantics) — but under "some," `'**'` alone already
+matches every file unconditionally, so the list is true regardless of the second pattern. The
+negation was never doing anything. This bug existed from the moment the filter was written;
+every prior PR happened to also touch non-`.md` files, so `verify` correctly running looked
+like the feature working, when it was actually just always running regardless of the filter.
+
+**Chose:** First tried `predicate-quantifier: 'some-with-excludes'`, per the library's current
+README (fetched directly, not assumed) — that mode makes negated patterns in the list act as
+actual exclusions rather than independent OR branches, and is the semantically closer fix.
+Pushed it, and CI itself immediately rejected it: `##[error]Input parameter
+'predicate-quantifier' is set to invalid value 'some-with-excludes'. Valid values: every,
+some` — the pinned `dorny/paths-filter@v3` tag doesn't include whatever release added that
+mode; the README describes a newer version than what's actually installed. Switched to
+`every` instead (the other documented option, also confirmed correct in the same README fetch)
+— a file must match `'**'` (always true) **and not** match `'**/*.md'`, which is exactly the
+AND-then-subtract behavior wanted.
+
+**Why:** `every` is the mode this specific pinned action version actually supports and
+documents. Worth remembering for next time: a library's current docs describe its current
+release, not necessarily whatever an existing `@v3`-style major-version pin resolves to —
+verifying against the actual error a real run produces beats trusting docs alone, which is
+exactly what caught this before it shipped wrong twice.
+
+**Tradeoff:** None technically, but a real process lesson (twice over, now): "confirmed live"
+claims in this codebase's docs need an actual triggering event, not just successful runs of a
+_different_ path, and a fix inspired by docs still needs a live run to confirm it applies to
+the exact pinned version in use. The original entry's "not yet confirmed live" caveat on the
+skip path specifically was doing real work — correct to keep flagging it as unverified across
+multiple sessions rather than assuming it worked. This bug surfaced only by accident, on a
+routine session-handoff commit that happened to be genuinely doc-only. Re-verified live after
+the `every` fix — see the session log for the actual passing run.
