@@ -7,6 +7,15 @@ export type InvestigationGoalOption = {
 };
 
 /**
+ * Each selected goal runs its own concurrent Tavily Research call (§38),
+ * and Tavily's Research API has no per-call credit cap of its own — cost is
+ * agent-decided within a 4-110 credit range per call on the "mini" model.
+ * Capping goal count is the only lever we actually have to bound spend per
+ * investigation. See DECISIONS.md.
+ */
+export const MAX_INVESTIGATION_GOALS = 5;
+
+/**
  * Single source of truth for the 9 default investigation categories + custom,
  * per PRD §8. Reused by the setup screen's goal selector and, later, the
  * Evidence Explorer's investigation-area filters.

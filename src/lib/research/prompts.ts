@@ -110,7 +110,25 @@ Rules:
   matter to this applicant (e.g. exact hiring manager, internal priorities, unpublished roadmap).
   This is mandatory even when research went well — it prevents false certainty.
 - executiveSignal is 5-7 sentences on what matters most before this applicant applies, grounded
-  only in the findings you produce.`;
+  only in the findings you produce.
+- Also produce a companyBriefing object, the dashboard's first section:
+  - companySummary: one sentence stating what the company is, grounded in research.
+  - companyTags: up to 5 short factual tags about the company itself — notable acquisitions,
+    employee count, revenue/funding, awards or recognition, or other notable facts found in
+    research. Not generic descriptors, not search terms. If fewer than 5 are actually
+    supported by the research, return fewer — never invent a tag to fill the count.
+  - idealFitSummary and idealFitSkills (up to 3): who the company appears to value in a role
+    like this and why, based on evidence about the company's product, team, strategy, or
+    culture — NOT extracted or paraphrased from the job description. The job description is
+    given only so you understand what role this is being evaluated against; it is never a
+    source of fact for this field.
+  - roleHighlights (up to 5): things this candidate should know about the company specific to
+    this role, each with a one-line "why it matters to this role." Must come from researched
+    evidence — never copied or paraphrased from the job description, never a false or invented
+    claim.
+  - Every companyTags/idealFitSkills/roleHighlights item must carry at least one real
+    sourceRef from the pool. If nothing in the pool supports an item, leave it out rather than
+    include it unsupported.`;
 
 function formatSourcePool(pool: PooledSource[]): string {
   return pool
