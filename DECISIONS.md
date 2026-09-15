@@ -349,3 +349,38 @@ not 1x. Wiring `request.signal` through the pipeline to actually cancel the abor
 server-side, or starting the fetch from the setup form's submit handler instead of an effect,
 would remove this — not done here to avoid over-engineering ahead of a real need; flagged for
 Shiyaa to decide if it's worth doing before heavier manual testing begins.
+
+## 2026-09-15 — Company Briefing is a synthesis-model output, not client-derived
+
+**Context:** Shiyaa asked for the dashboard's first section — company summary + up to 5 tags
+(acquisitions/headcount/revenue/awards), an ideal-fit summary + top 3 skills, and 5
+role-specific highlights each with a one-line "why it matters." The skills and highlights must
+come from actual research, explicitly not from the job description text, and must not be
+false claims or hallucinations.
+
+**Options considered:** Derive this client-side from the existing `Finding[]` already in
+`InvestigationResult` (e.g. pick findings tagged `investigationArea: "company"`/`"role"` and
+reshape them) / add a new structured `companyBriefing` object to the synthesis model's own
+output schema, using the same ref-constrained-citation mechanism `findings` already has.
+
+**Chose:** The second option. `companyBriefing` is now part of `buildSynthesisOutputSchema`
+(`lib/schemas/evidence.ts`), with every tag/skill/highlight requiring `sourceRefs.min(1)` — the
+same enum-constrained-to-the-real-pool mechanism that already makes fabricated URLs
+structurally impossible for `findings`. `SYNTHESIS_PROMPT_V1` gained explicit rules: the JD is
+available to the model only to know what role is being evaluated against, never as a source of
+fact for `idealFitSkills`/`roleHighlights`; omit an item rather than invent one to hit the
+5/3/5 caps.
+
+**Why:** Picking "the top 5 acquisitions/revenue/etc." out of unstructured `Finding.claim` text
+on the client, without the model's own judgment and citation discipline in the loop, is exactly
+the kind of ungrounded inference PRD §35 (hallucination guardrails) and §36 (citation rule)
+exist to prevent — there'd be no structural guarantee the picked items were actually
+evidence-backed, only a hope the heuristic picked well-sourced findings. The synthesis model
+already receives the full JD and all raw research in one call, so no new research/Tavily stage
+was needed — this is additive to the existing synthesis step, not a new pipeline stage.
+
+**Tradeoff:** One more thing that can fail schema validation and trigger the corrective-retry
+path (`attemptProvider` in `synthesis.ts`) — a slightly larger structured-output surface for
+Mistral/Groq to get right in one call. Caps are maximums, not exact counts, so a
+weak-evidence investigation may show fewer than 5 tags/3 skills/5 highlights, or an honest
+"not enough evidence" empty state per sub-section — this is intentional, not a bug.
