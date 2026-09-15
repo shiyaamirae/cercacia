@@ -42,7 +42,7 @@ export default function HomePage() {
               variants={reveal}
               className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
             >
-              Evidence-backed research
+              Evidence-backed investigation
             </motion.p>
 
             <motion.h1

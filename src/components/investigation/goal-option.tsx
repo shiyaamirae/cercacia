@@ -9,6 +9,7 @@ type GoalOptionProps = {
   goal: InvestigationGoalOption;
   selected: boolean;
   onToggle: () => void;
+  disabled?: boolean;
   customValue?: string;
   onCustomChange?: (value: string) => void;
   customError?: string;
@@ -18,6 +19,7 @@ export function GoalOption({
   goal,
   selected,
   onToggle,
+  disabled = false,
   customValue,
   onCustomChange,
   customError,
@@ -31,15 +33,18 @@ export function GoalOption({
         "flex flex-col gap-2 rounded-xl border p-3.5 text-left transition-colors",
         selected
           ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
-          : "border-border bg-card"
+          : "border-border bg-card",
+        disabled && "opacity-50"
       )}
     >
       <button
         type="button"
         role="checkbox"
         aria-checked={selected}
+        disabled={disabled}
+        title={disabled ? "Deselect another goal to pick this one" : undefined}
         onClick={onToggle}
-        className="flex w-full items-start justify-between gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="flex w-full items-start justify-between gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed"
       >
         <span className="flex flex-col gap-1">
           <span className="text-sm font-medium">{goal.title}</span>

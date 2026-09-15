@@ -57,8 +57,17 @@ export type Finding = {
   investigationArea: InvestigationArea;
 };
 
+export type CompanyBriefing = {
+  companySummary: string;
+  companyTags: { label: string; sources: Source[] }[];
+  idealFitSummary: string;
+  idealFitSkills: { skill: string; sources: Source[] }[];
+  roleHighlights: { point: string; whyItMatters: string; sources: Source[] }[];
+};
+
 export type InvestigationResult = {
   executiveSignal: string;
+  companyBriefing: CompanyBriefing;
   findings: Finding[];
   openQuestions: string[];
 };

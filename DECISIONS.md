@@ -295,3 +295,158 @@ GitHub Action, not an npm package — outside the app's own dependency policy, b
 third-party action to trust). If this pattern is ever "simplified" back to a plain
 `paths-ignore`, branch protection breaks silently for the next doc-only PR — worth remembering
 before touching this file again.
+
+## 2026-09-15 — Dashboard reads the Zustand-persisted result, no investigation ID/route param
+
+**Context:** Building Phase 3's progress screen + a first-pass dashboard
+(`/investigate/results`). The dashboard needs the completed `InvestigationResult`, but there's
+no server-side store beyond the one held-open `POST /api/investigate` request (ProjectInst §9,
+already decided in the NDJSON-over-SSE entry above) — no DB, no generated investigation ID to
+fetch by.
+
+**Chose:** The progress screen calls `setResult()` on the same Zustand store that already holds
+`setup` (persisted to localStorage) when the `result` pipeline event arrives, then does a
+client-side `router.push("/investigate/results")`. The dashboard route reads `setup`/`result`
+straight from the store; if either is missing (direct nav, refresh after localStorage was
+cleared, etc.) it redirects to `/investigate` rather than erroring.
+
+**Why:** Consistent with the existing setup-flow pattern (`commitSetup` → `/investigate/progress`
+already worked this way) and avoids introducing a fetch-by-ID architecture the app has no backing
+store for. `commitSetup` now also clears any stale `result` when a new investigation starts, so
+the dashboard never shows a previous run's data under a new company/role.
+
+**Tradeoff:** No shareable/bookmarkable URL per investigation, and a hard refresh on
+`/investigate/results` before Phase 6's reload/resume work is fully in place could show a stale
+result if `setup` changed but `result` didn't get cleared for some reason. Acceptable for now —
+Phase 6 (`ROADMAP.md`) already owns full reload/resume semantics; this doesn't block it.
+
+## 2026-09-15 — Progress screen fetch cost under Next dev's StrictMode double-invoke
+
+**Context:** Wiring `/investigate/progress` to the real `POST /api/investigate` stream inside a
+`useEffect`. Next's dev server wraps the app in `React.StrictMode`, which intentionally
+mount→cleanup→mount's every effect once in development to catch effects that aren't cleanup-safe.
+
+**Chose:** Used a real `AbortController`, created in the effect and aborted in its cleanup, and
+let both StrictMode invocations actually fire `fetch("/api/investigate", ...)` — the first
+request gets aborted client-side almost immediately, the second one is the one that actually
+completes and drives the UI. This is the standard React-recommended pattern for effects with
+fetch (make cleanup genuinely cancel the request, don't try to suppress the second invocation
+with a ref guard — a ref guard here would silently break the flow entirely, since cleanup would
+cancel the only request that was allowed to start).
+
+**Why:** Correctness over cleverness — a guard that tries to dodge StrictMode's double-invoke
+by skipping the second effect run doesn't know that cleanup already cancelled the first one, so
+the app would end up with zero live streams and a progress screen that never updates.
+
+**Tradeoff:** In `npm run dev` specifically (not `next build`/`next start`, and not
+production), the very first page load of `/investigate/progress` in a session will send two real
+`POST /api/investigate` requests — meaning two live Tavily/Mistral/Groq runs — before the
+aborted one is cut off client-side (the server-side pipeline for the aborted request isn't
+currently wired to `request.signal`, so it keeps running to completion regardless, and its
+result is just discarded). Worth knowing before manually testing this flow with real API keys:
+each dev-mode test click through the full flow costs roughly 2x one investigation's API spend,
+not 1x. Wiring `request.signal` through the pipeline to actually cancel the aborted run
+server-side, or starting the fetch from the setup form's submit handler instead of an effect,
+would remove this — not done here to avoid over-engineering ahead of a real need; flagged for
+Shiyaa to decide if it's worth doing before heavier manual testing begins.
+
+## 2026-09-15 — Company Briefing is a synthesis-model output, not client-derived
+
+**Context:** Shiyaa asked for the dashboard's first section — company summary + up to 5 tags
+(acquisitions/headcount/revenue/awards), an ideal-fit summary + top 3 skills, and 5
+role-specific highlights each with a one-line "why it matters." The skills and highlights must
+come from actual research, explicitly not from the job description text, and must not be
+false claims or hallucinations.
+
+**Options considered:** Derive this client-side from the existing `Finding[]` already in
+`InvestigationResult` (e.g. pick findings tagged `investigationArea: "company"`/`"role"` and
+reshape them) / add a new structured `companyBriefing` object to the synthesis model's own
+output schema, using the same ref-constrained-citation mechanism `findings` already has.
+
+**Chose:** The second option. `companyBriefing` is now part of `buildSynthesisOutputSchema`
+(`lib/schemas/evidence.ts`), with every tag/skill/highlight requiring `sourceRefs.min(1)` — the
+same enum-constrained-to-the-real-pool mechanism that already makes fabricated URLs
+structurally impossible for `findings`. `SYNTHESIS_PROMPT_V1` gained explicit rules: the JD is
+available to the model only to know what role is being evaluated against, never as a source of
+fact for `idealFitSkills`/`roleHighlights`; omit an item rather than invent one to hit the
+5/3/5 caps.
+
+**Why:** Picking "the top 5 acquisitions/revenue/etc." out of unstructured `Finding.claim` text
+on the client, without the model's own judgment and citation discipline in the loop, is exactly
+the kind of ungrounded inference PRD §35 (hallucination guardrails) and §36 (citation rule)
+exist to prevent — there'd be no structural guarantee the picked items were actually
+evidence-backed, only a hope the heuristic picked well-sourced findings. The synthesis model
+already receives the full JD and all raw research in one call, so no new research/Tavily stage
+was needed — this is additive to the existing synthesis step, not a new pipeline stage.
+
+**Tradeoff:** One more thing that can fail schema validation and trigger the corrective-retry
+path (`attemptProvider` in `synthesis.ts`) — a slightly larger structured-output surface for
+Mistral/Groq to get right in one call. Caps are maximums, not exact counts, so a
+weak-evidence investigation may show fewer than 5 tags/3 skills/5 highlights, or an honest
+"not enough evidence" empty state per sub-section — this is intentional, not a bug.
+
+## 2026-09-15 — Reversed the StrictMode-fetch decision above: skip the duplicate entirely
+
+**Context:** The "flagged for Shiyaa to decide" tradeoff in the entry above turned out worse
+than predicted, confirmed live: a real test run showed two concurrent
+`POST /api/investigate` pipelines (server log had two full sets of per-goal failures from one
+page load, plus `Investigation pipeline crashed: TypeError: Invalid state: Controller is
+already closed` — the orphaned duplicate's pipeline kept running against a stream controller
+the platform had already torn down once its client-side fetch was aborted, and every
+subsequent `send()` in that orphaned pipeline threw the same error). This wasn't just wasted
+spend as predicted — doubling concurrent Tavily load from one page click is a likely
+contributor to hitting Tavily's real plan-limit (432) on the _visible_ investigation too
+(`company`/`people` failed there in the same run).
+
+**Chose:** Reverted to a `useRef` "started" guard that skips StrictMode's second effect
+invocation entirely — no `AbortController`, no cleanup. `readInvestigationStream` no longer
+takes a `signal` param.
+
+**Why:** The previous entry rejected a ref guard on the reasoning that cleanup would cancel
+the only request StrictMode's double-invoke lets through, leaving zero live streams. That
+reasoning was correct for a _cleanup-that-aborts_ combined with a ref guard — but it doesn't
+apply to a ref guard _without_ a cleanup at all. This is a one-time, non-idempotent action
+(real API spend), not a subscription — React's own guidance explicitly carves out exactly this
+case as a valid use of a ref guard, distinct from the general "don't fight StrictMode" advice
+for subscriptions/timers. Skipping the second invocation outright — rather than starting it
+and aborting it — is what actually prevents the duplicate server-side pipeline from ever
+starting, since abort was never able to stop the server-side work anyway (no `request.signal`
+wiring into the pipeline).
+
+**Tradeoff:** A genuine unmount mid-research (user navigates away from `/investigate/progress`
+manually) no longer cancels anything client-side either — but it never actually stopped the
+server-side pipeline before now, so this gives up nothing that was real. `key={attempt}` on
+`InvestigationRun` still resets the ref on retry, so each retry still fires exactly once.
+
+## 2026-09-15 — Hard cap of 5 investigation goals per investigation
+
+**Context:** A live test run consumed 464 Tavily credits in one investigation. Checked
+Tavily's Research API docs directly: the only cost lever is `model` (`mini` vs `pro`, already
+on `mini`), and `mini` itself costs a dynamic **4-110 credits per call** — "how much internal
+research the agent does," with no documented max-results/search-depth/budget parameter to
+bound it further. Since one Research call runs per selected goal, concurrently (§38), total
+spend per investigation scales with goal count, and that's the only lever actually available
+to us.
+
+**Options:** No cap, just a cost hint next to the goal picker (soft guidance, no enforcement) /
+hard cap on how many goals can be selected at once / switch goal research from concurrent to
+sequential with a running-total early-stop (requires Tavily to report per-call credit usage in
+the response, which isn't confirmed to exist, and would sacrifice the concurrent-research
+architecture already decided for real per-goal progress).
+
+**Chose:** A hard cap of 5 goals per investigation (`MAX_INVESTIGATION_GOALS` in
+`lib/investigation-goals.ts`), enforced in `investigationSetupSchema` (server-trusted) and
+mirrored in the setup UI (disables further goal checkboxes once 5 are selected, rather than
+only surfacing a validation error after submit).
+
+**Why:** Confirmed with Shiyaa directly (a cost decision, not something to guess at) — a hard
+cap over a soft warning, since a soft warning still lets one investigation blow through most of
+a monthly credit budget. 5 was chosen as worst case (5 × mini's 110-credit ceiling = 550
+credits) leaves headroom for more than one investigation per 1,000-credit month even at the
+worst case, while matching the "top 5" framing already used elsewhere in the product (company
+tags, role highlights).
+
+**Tradeoff:** A candidate who wants to investigate more than 5 areas at once can't — they'd
+need to run a follow-up investigation or accept narrower initial scope. Revisit the number if
+Tavily's actual per-call cost in practice sits meaningfully below the 110-credit ceiling once
+more real usage data exists.

@@ -10,6 +10,7 @@ import { GoalOption } from "@/components/investigation/goal-option";
 import {
   FRESHNESS_OPTIONS,
   INVESTIGATION_GOALS,
+  MAX_INVESTIGATION_GOALS,
 } from "@/lib/investigation-goals";
 import type { InvestigationSetupInput } from "@/lib/schemas/investigation";
 
@@ -80,7 +81,9 @@ export function SetupForm({ form }: SetupFormProps) {
         <div className="flex flex-col gap-1">
           <h2 className="font-display text-xl">Investigation goals</h2>
           <p className="text-sm text-muted-foreground">
-            Select one or more areas to investigate.
+            Select up to {MAX_INVESTIGATION_GOALS} areas to investigate — each
+            one runs its own research call, so fewer, sharper goals go further
+            than many broad ones.
           </p>
         </div>
 
@@ -89,6 +92,7 @@ export function SetupForm({ form }: SetupFormProps) {
           control={control}
           render={({ field }) => {
             const selected = field.value ?? [];
+            const limitReached = selected.length >= MAX_INVESTIGATION_GOALS;
             return (
               <div className="grid gap-3 sm:grid-cols-2">
                 {INVESTIGATION_GOALS.map((goal) => {
@@ -98,6 +102,7 @@ export function SetupForm({ form }: SetupFormProps) {
                       key={goal.id}
                       goal={goal}
                       selected={isSelected}
+                      disabled={!isSelected && limitReached}
                       onToggle={() => {
                         field.onChange(
                           isSelected

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  CompanyBriefing,
   Finding,
   InvestigationArea,
   InvestigationResult,
@@ -90,45 +91,70 @@ async function attemptProvider(
   return { status: "invalid_after_retry" };
 }
 
+function resolveSources(
+  refs: string[],
+  poolByRef: Map<string, PooledSource>,
+  relevanceByRef: Map<string, "high" | "medium" | "low">
+): Source[] {
+  return refs
+    .map((ref): Source | null => {
+      const pooled = poolByRef.get(ref);
+      if (!pooled) return null;
+      return {
+        title: pooled.title,
+        url: pooled.url,
+        domain: pooled.domain,
+        publishedAt: pooled.publishedAt,
+        accessedAt: pooled.accessedAt,
+        sourceTier: pooled.sourceTier,
+        relevance: relevanceByRef.get(ref) ?? "medium",
+      };
+    })
+    .filter((source): source is Source => source !== null);
+}
+
 function assembleResult(
   data: SynthesisOutput,
   pool: PooledSource[]
 ): InvestigationResult {
   const poolByRef = new Map(pool.map((source) => [source.ref, source]));
   const relevanceByRef = new Map(data.sources.map((s) => [s.ref, s.relevance]));
+  const resolve = (refs: string[]) =>
+    resolveSources(refs, poolByRef, relevanceByRef);
 
-  const findings: Finding[] = data.findings.map((finding) => {
-    const sources: Source[] = finding.sourceRefs
-      .map((ref): Source | null => {
-        const pooled = poolByRef.get(ref);
-        if (!pooled) return null;
-        return {
-          title: pooled.title,
-          url: pooled.url,
-          domain: pooled.domain,
-          publishedAt: pooled.publishedAt,
-          accessedAt: pooled.accessedAt,
-          sourceTier: pooled.sourceTier,
-          relevance: relevanceByRef.get(ref) ?? "medium",
-        };
-      })
-      .filter((source): source is Source => source !== null);
+  const findings: Finding[] = data.findings.map((finding) => ({
+    id: crypto.randomUUID(),
+    claim: finding.claim,
+    classification: finding.classification,
+    confidence: finding.confidence,
+    evidence: finding.evidence,
+    sources: resolve(finding.sourceRefs),
+    whyItMatters: finding.whyItMatters,
+    limitations: finding.limitations,
+    investigationArea: finding.investigationArea,
+  }));
 
-    return {
-      id: crypto.randomUUID(),
-      claim: finding.claim,
-      classification: finding.classification,
-      confidence: finding.confidence,
-      evidence: finding.evidence,
-      sources,
-      whyItMatters: finding.whyItMatters,
-      limitations: finding.limitations,
-      investigationArea: finding.investigationArea,
-    };
-  });
+  const companyBriefing: CompanyBriefing = {
+    companySummary: data.companyBriefing.companySummary,
+    companyTags: data.companyBriefing.companyTags.map((tag) => ({
+      label: tag.label,
+      sources: resolve(tag.sourceRefs),
+    })),
+    idealFitSummary: data.companyBriefing.idealFitSummary,
+    idealFitSkills: data.companyBriefing.idealFitSkills.map((item) => ({
+      skill: item.skill,
+      sources: resolve(item.sourceRefs),
+    })),
+    roleHighlights: data.companyBriefing.roleHighlights.map((item) => ({
+      point: item.point,
+      whyItMatters: item.whyItMatters,
+      sources: resolve(item.sourceRefs),
+    })),
+  };
 
   return {
     executiveSignal: data.executiveSignal,
+    companyBriefing,
     findings,
     openQuestions: data.openQuestions,
   };
