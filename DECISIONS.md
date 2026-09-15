@@ -53,3 +53,19 @@ match.
 **Tradeoff:** Two more dependencies than the minimal-first plan called for; the discipline of
 "start plain, add only when justified" is traded for architectural consistency decided
 up front.
+
+## 2026-09-15 — No open-source license (all rights reserved)
+
+**Context:** The repo is public but had no LICENSE file, which is ambiguous by default —
+worth stating explicitly rather than leaving silent.
+
+**Options:** MIT (permissive, common default for portfolio/assignment repos) / Apache 2.0 /
+no LICENSE file (GitHub default: all rights reserved, viewable but not legally reusable).
+
+**Chose:** No LICENSE file — all rights reserved, stated explicitly in `README.md`.
+
+**Why:** CercaCia may become more than a class assignment; a permissive license would let
+anyone copy, modify, or sell derivatives, which isn't desired while that's still undecided.
+
+**Tradeoff:** Less conventional for a portfolio repo (no badge-friendly open license), and
+anyone wanting to build on it legitimately would need to ask first.
