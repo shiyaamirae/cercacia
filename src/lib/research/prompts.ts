@@ -93,6 +93,9 @@ Rules:
 - Never silently convert an inference into a fact. State interpretation as interpretation.
 - Cite sources only by the "ref" ids given below (e.g. "S1") — never write a URL, domain, or
   source title yourself. A finding's sourceRefs must only contain refs listed in the source pool.
+- "evidence" and "sourceRefs" are different fields. evidence is 1-3 short paraphrased excerpts
+  of what the sources actually say (plain text, no ref ids in it). sourceRefs is the separate
+  list of which pool refs support the claim. Do not put ref ids like "S1" inside evidence.
 - If credible sources disagree, represent both sides and classify the finding "contradicted" —
   do not average or hide the disagreement.
 - Separate role requirements into explicit (directly stated in the JD), strongly implied

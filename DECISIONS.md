@@ -190,3 +190,45 @@ field. `sourceTier` is likewise computed deterministically from the domain (see
 **Tradeoff:** More moving parts — a source pool has to be built and deduped before synthesis can
 even construct its schema (the ref enum depends on it), and the synthesis prompt has to spell out
 the pool for the model to cite from. Worth it for a guarantee this central to the product.
+
+## 2026-09-15 — Primary synthesis provider switched from Gemini to Mistral
+
+**Context:** The first version of Phase 2 shipped with Gemini as primary synthesis provider (see
+the 2026-09-15 "Gemini + Groq for synthesis" entry above). Live end-to-end testing that same day
+exhausted Gemini's free-tier quota (`generate_content_free_tier_requests`, limit 20/day) — Gemini
+became unavailable for the rest of the day after a handful of real pipeline runs, well before any
+real usage volume.
+
+**Options:** Wait out / upgrade the Gemini quota and keep Gemini primary / switch primary to
+Mistral (Shiyaa's call, key supplied directly) / drop the fallback pattern entirely.
+
+**Chose:** Mistral as primary synthesis provider, Groq remains the fallback — same
+retry-then-fallback-then-fail-gracefully design as before, just swapping which provider is
+tried first. `src/lib/ai/gemini.ts` deleted; `src/lib/ai/mistral.ts` added
+(`callMistralStructured`, `POST https://api.mistral.ai/v1/chat/completions`, OpenAI-compatible
+`response_format: {type: "json_schema", json_schema: {name, schema, strict: true}}` — same
+shape as Groq, since Mistral's chat completions API is OpenAI-compatible). `MISTRAL_API_KEY`
+replaces `GEMINI_API_KEY` in `.env`/`.env.example`/`CLAUDE.md`.
+
+Model actually used: `ministral-3b-2512`, not `mistral-large-latest`/`mistral-medium-latest` as
+first tried — this account's key returned `x-ratelimit-limit-req-minute: 0` for medium (and a
+403 "not available in your subscription tier" for large), confirmed live via response headers;
+`ministral-3b` is what's actually usable on this tier (750 req/min). Live-verified the smaller
+model handles the full synthesis schema/prompt correctly, though it initially conflated the
+`evidence` field (meant to hold descriptive excerpts) with `sourceRefs` (citation ids) — fixed
+by adding an explicit instruction distinguishing the two to `SYNTHESIS_PROMPT_V1`, re-verified
+live afterward.
+
+**Why:** Shiyaa's decision, made directly in response to the quota problem reported after Phase
+2's live verification — a 20-request daily cap makes Gemini impractical even for continued
+development, let alone real usage.
+
+**Tradeoff:** A 3B model is meaningfully smaller than Groq's 20B fallback or what
+medium/large-tier Mistral would have been — the evidence/sourceRefs confusion above is a real
+symptom of that, worth keeping an eye on for other subtle instruction-following gaps as more of
+the pipeline gets built. Groq's own fallback behavior (see the "structured output" decision in
+Phase 2) is now the only safety net if Mistral also hits a limit or outage — worth watching for
+the same
+kind of quota surprise Gemini had, though Mistral's paid key (vs. Gemini's free tier) should not
+have the same low daily cap. Whether to revert to OpenAI at deployment (open item since Phase 0)
+is unaffected either way.

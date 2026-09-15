@@ -17,7 +17,7 @@ import {
   type RawSource,
 } from "@/lib/research/source-pool";
 import { buildSynthesisPrompt } from "@/lib/research/prompts";
-import { callGeminiStructured } from "@/lib/ai/gemini";
+import { callMistralStructured } from "@/lib/ai/mistral";
 import { callGroqStructured } from "@/lib/ai/groq";
 
 export type SynthesisFailureReason =
@@ -152,14 +152,14 @@ export async function synthesizeInvestigation(
   const jsonSchema = z.toJSONSchema(schema);
   const prompt = buildSynthesisPrompt(brief, goalReports, pool);
 
-  const geminiOutcome = await attemptProvider(
-    "Gemini",
-    (p) => callGeminiStructured(p, jsonSchema),
+  const mistralOutcome = await attemptProvider(
+    "Mistral",
+    (p) => callMistralStructured(p, jsonSchema, "investigation_result"),
     prompt,
     schema
   );
-  if (geminiOutcome.status === "success") {
-    return { ok: true, result: assembleResult(geminiOutcome.data, pool) };
+  if (mistralOutcome.status === "success") {
+    return { ok: true, result: assembleResult(mistralOutcome.data, pool) };
   }
 
   const groqOutcome = await attemptProvider(

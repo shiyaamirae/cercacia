@@ -37,9 +37,11 @@ changes UX, research methodology, evidence behavior, cost, or scope).
 Full stack: `PRD.md` §44, `ProjectInst.md` §7–10. Three active deviations (full rationale in
 `DECISIONS.md`, not repeated here):
 
-- **Synthesis provider:** Gemini (primary) + Groq (fallback), not OpenAI, until deployment.
+- **Synthesis provider:** Mistral (primary) + Groq (fallback), not OpenAI, until deployment.
   `OPENAI_API_KEY` not required this phase. Tavily unchanged. Evidence-quality rules
   (fact/inference/no hallucination, `ProjectInst.md` §14–23) apply regardless of provider.
+  Switched from Gemini to Mistral 2026-09-15 after Gemini's free-tier quota (20 requests/day)
+  was exhausted mid-testing — see `DECISIONS.md`.
 - **Motion for React:** added. Use for transitions that carry meaning (research progress,
   evidence appearing, tab/section changes, drawers) — not decoration. Don't ship default
   shadcn styling; build CercaCia's own visual language on top of its primitives.
@@ -63,7 +65,7 @@ See `PRD.md` §62 for the `src/` layout. Don't over-engineer beyond it.
 
 ## Environment Variables
 
-This phase: `TAVILY_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`. `OPENAI_API_KEY` not required
+This phase: `TAVILY_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`. `OPENAI_API_KEY` not required
 yet. Server-side only, never `NEXT_PUBLIC_*`. Full rules: `ProjectInst.md` §11, §39. Keep
 `.env.example` (dummy values) in sync with `.env`.
 
@@ -72,7 +74,7 @@ yet. Server-side only, never `NEXT_PUBLIC_*`. Full rules: `ProjectInst.md` §11,
 Build/lint/type/runtime failure: read the actual error, fix, retest immediately without asking
 permission, repeat autonomously up to ~3–4 attempts. Still failing → stop and report what was
 tried and what's blocking. One summary at the end, not a turn-by-turn narration. Exception:
-don't blindly retry against live Tavily/Gemini/Groq calls — check with Shiyaa before burning
+don't blindly retry against live Tavily/Mistral/Groq calls — check with Shiyaa before burning
 credits (mock data is fine for UI iteration, `ProjectInst.md` §41).
 
 ## Reference

@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ResearchBrief } from "@/types/investigation";
 
-const callGeminiStructured = vi.fn();
+const callMistralStructured = vi.fn();
 const callGroqStructured = vi.fn();
 
-vi.mock("@/lib/ai/gemini", () => ({
-  callGeminiStructured: (...args: unknown[]) => callGeminiStructured(...args),
+vi.mock("@/lib/ai/mistral", () => ({
+  callMistralStructured: (...args: unknown[]) => callMistralStructured(...args),
 }));
 vi.mock("@/lib/ai/groq", () => ({
   callGroqStructured: (...args: unknown[]) => callGroqStructured(...args),
@@ -55,11 +55,11 @@ describe("synthesizeInvestigation", () => {
       { goal: "company", content: "", sources: [] },
     ]);
     expect(result).toEqual({ ok: false, reason: "no_sources" });
-    expect(callGeminiStructured).not.toHaveBeenCalled();
+    expect(callMistralStructured).not.toHaveBeenCalled();
   });
 
-  it("succeeds on Gemini's first attempt without falling back to Groq", async () => {
-    callGeminiStructured
+  it("succeeds on Mistral's first attempt without falling back to Groq", async () => {
+    callMistralStructured
       .mockReset()
       .mockImplementation(async () => validOutput("S1"));
     callGroqStructured.mockReset();
@@ -75,8 +75,8 @@ describe("synthesizeInvestigation", () => {
     }
   });
 
-  it("retries Gemini once with corrective context after an invalid structure, then succeeds", async () => {
-    callGeminiStructured
+  it("retries Mistral once with corrective context after an invalid structure, then succeeds", async () => {
+    callMistralStructured
       .mockReset()
       .mockImplementationOnce(async () => ({ nonsense: true }))
       .mockImplementationOnce(async () => validOutput("S1"));
@@ -85,15 +85,15 @@ describe("synthesizeInvestigation", () => {
     const result = await synthesizeInvestigation(brief, goalReports);
 
     expect(result.ok).toBe(true);
-    expect(callGeminiStructured).toHaveBeenCalledTimes(2);
-    expect(callGeminiStructured.mock.calls[1][0]).toContain(
+    expect(callMistralStructured).toHaveBeenCalledTimes(2);
+    expect(callMistralStructured.mock.calls[1][0]).toContain(
       "did not match the required schema"
     );
     expect(callGroqStructured).not.toHaveBeenCalled();
   });
 
-  it("retries Gemini once after a thrown error (transient failures happen), then falls back to Groq", async () => {
-    callGeminiStructured
+  it("retries Mistral once after a thrown error (transient failures happen), then falls back to Groq", async () => {
+    callMistralStructured
       .mockReset()
       .mockRejectedValue(new Error("rate limited"));
     callGroqStructured
@@ -107,12 +107,12 @@ describe("synthesizeInvestigation", () => {
     vi.useRealTimers();
 
     expect(result.ok).toBe(true);
-    expect(callGeminiStructured).toHaveBeenCalledTimes(2);
+    expect(callMistralStructured).toHaveBeenCalledTimes(2);
     expect(callGroqStructured).toHaveBeenCalledTimes(1);
   });
 
   it("fails gracefully as provider_failure when both providers error outright twice", async () => {
-    callGeminiStructured
+    callMistralStructured
       .mockReset()
       .mockRejectedValue(new Error("network error"));
     callGroqStructured
@@ -126,12 +126,12 @@ describe("synthesizeInvestigation", () => {
     vi.useRealTimers();
 
     expect(result).toEqual({ ok: false, reason: "provider_failure" });
-    expect(callGeminiStructured).toHaveBeenCalledTimes(2);
+    expect(callMistralStructured).toHaveBeenCalledTimes(2);
     expect(callGroqStructured).toHaveBeenCalledTimes(2);
   });
 
   it("fails gracefully as invalid_structure when both providers return unfixable output", async () => {
-    callGeminiStructured
+    callMistralStructured
       .mockReset()
       .mockImplementation(async () => ({ nonsense: true }));
     callGroqStructured
@@ -141,7 +141,7 @@ describe("synthesizeInvestigation", () => {
     const result = await synthesizeInvestigation(brief, goalReports);
 
     expect(result).toEqual({ ok: false, reason: "invalid_structure" });
-    expect(callGeminiStructured).toHaveBeenCalledTimes(2);
+    expect(callMistralStructured).toHaveBeenCalledTimes(2);
     expect(callGroqStructured).toHaveBeenCalledTimes(2);
   });
 });
