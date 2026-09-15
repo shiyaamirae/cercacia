@@ -633,21 +633,28 @@ negation was never doing anything. This bug existed from the moment the filter w
 every prior PR happened to also touch non-`.md` files, so `verify` correctly running looked
 like the feature working, when it was actually just always running regardless of the filter.
 
-**Chose:** Added `predicate-quantifier: 'some-with-excludes'` to the `dorny/paths-filter` step
-— confirmed via the library's own README (fetched directly, not assumed) that this mode makes
-negated patterns in the list act as actual exclusions rather than independent OR branches.
+**Chose:** First tried `predicate-quantifier: 'some-with-excludes'`, per the library's current
+README (fetched directly, not assumed) — that mode makes negated patterns in the list act as
+actual exclusions rather than independent OR branches, and is the semantically closer fix.
+Pushed it, and CI itself immediately rejected it: `##[error]Input parameter
+'predicate-quantifier' is set to invalid value 'some-with-excludes'. Valid values: every,
+some` — the pinned `dorny/paths-filter@v3` tag doesn't include whatever release added that
+mode; the README describes a newer version than what's actually installed. Switched to
+`every` instead (the other documented option, also confirmed correct in the same README fetch)
+— a file must match `'**'` (always true) **and not** match `'**/*.md'`, which is exactly the
+AND-then-subtract behavior wanted.
 
-**Why:** This is the officially documented fix for exactly this pattern (a catch-all plus a
-negation, wanting AND-then-subtract semantics) — `every` was the other documented option but
-`some-with-excludes` is the closer semantic match to what the filter was already trying to
-express.
+**Why:** `every` is the mode this specific pinned action version actually supports and
+documents. Worth remembering for next time: a library's current docs describe its current
+release, not necessarily whatever an existing `@v3`-style major-version pin resolves to —
+verifying against the actual error a real run produces beats trusting docs alone, which is
+exactly what caught this before it shipped wrong twice.
 
-**Tradeoff:** None technically, but a real process lesson: "confirmed live" claims in this
-codebase's docs need an actual triggering event, not just successful runs of a _different_
-path. The original entry's "not yet confirmed live" caveat on the skip path specifically was
-doing real work — it was correct to keep flagging this as unverified across multiple sessions
-rather than assuming it worked. Nobody had gone back and deliberately constructed a genuinely
-doc-only PR to actually trigger that path, though — this one surfaced the bug only by
-accident, on a routine session-handoff commit. Worth re-verifying live once more after this
-fix: PR #16 itself was already open before this fix landed, so it needs to re-run against the
-corrected workflow, not just get merged on faith that the fix is right.
+**Tradeoff:** None technically, but a real process lesson (twice over, now): "confirmed live"
+claims in this codebase's docs need an actual triggering event, not just successful runs of a
+_different_ path, and a fix inspired by docs still needs a live run to confirm it applies to
+the exact pinned version in use. The original entry's "not yet confirmed live" caveat on the
+skip path specifically was doing real work — correct to keep flagging it as unverified across
+multiple sessions rather than assuming it worked. This bug surfaced only by accident, on a
+routine session-handoff commit that happened to be genuinely doc-only. Re-verified live after
+the `every` fix — see the session log for the actual passing run.
