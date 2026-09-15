@@ -61,7 +61,7 @@ export default function InvestigatePage() {
             variants={reveal}
             className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
           >
-            New investigation
+            Open case
           </motion.p>
           <motion.h1
             custom={1}

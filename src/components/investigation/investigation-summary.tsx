@@ -49,7 +49,7 @@ export function InvestigationSummary({ form }: InvestigationSummaryProps) {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Nothing selected yet.
+              No leads chosen yet.
             </p>
           )}
         </div>
