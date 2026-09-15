@@ -1,6 +1,8 @@
 import type { Confidence, FindingClassification } from "@/types/investigation";
 
 export const NOT_ENOUGH_EVIDENCE = "Not enough evidence to identify this yet.";
+export const NO_OPEN_QUESTIONS =
+  "No open questions identified for this investigation.";
 
 export function sourceCountLabel(count: number): string {
   return `${count} source${count === 1 ? "" : "s"} on file`;

@@ -8,6 +8,7 @@ import { PeopleSectionView } from "@/components/investigation/people-section";
 import { StructureSectionView } from "@/components/investigation/structure-section";
 import { RelevantWorkSectionView } from "@/components/investigation/relevant-work-section";
 import { EvidenceSectionView } from "@/components/investigation/evidence-section";
+import { OpenQuestionsSectionView } from "@/components/investigation/open-questions-section";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvestigationStore } from "@/lib/store/investigation-store";
 import { investigationResultSchema } from "@/lib/schemas/evidence";
@@ -121,6 +122,7 @@ export default function InvestigationResultsPage() {
               <TabsTrigger value="structure">Structure</TabsTrigger>
               <TabsTrigger value="relevant-work">Relevant work</TabsTrigger>
               <TabsTrigger value="evidence">Evidence</TabsTrigger>
+              <TabsTrigger value="open-questions">Open questions</TabsTrigger>
             </TabsList>
 
             <TabsContent value="company" className="mt-6">
@@ -139,6 +141,9 @@ export default function InvestigationResultsPage() {
             </TabsContent>
             <TabsContent value="evidence" className="mt-6">
               <EvidenceSectionView findings={result.findings} />
+            </TabsContent>
+            <TabsContent value="open-questions" className="mt-6">
+              <OpenQuestionsSectionView openQuestions={result.openQuestions} />
             </TabsContent>
           </Tabs>
         </motion.section>
