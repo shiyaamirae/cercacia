@@ -33,3 +33,6 @@ coverage/
 .claude/skills/
 .hallmark/
 skills-lock.json
+
+# Development fixtures (PRD §60) — real third-party content (e.g. an actual JD), not ours to publish
+fixtures/
