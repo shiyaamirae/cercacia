@@ -65,9 +65,40 @@ export type CompanyBriefing = {
   roleHighlights: { point: string; whyItMatters: string; sources: Source[] }[];
 };
 
+export type PersonEntry = {
+  name: string;
+  title: string;
+  note: string;
+  sources: Source[];
+};
+
+export type PeopleSection = {
+  keyPeople: PersonEntry[];
+  hiringContacts: PersonEntry[];
+};
+
+export type TeamEntry = { name: string; note: string; sources: Source[] };
+
+export type StructureSection = {
+  teams: TeamEntry[];
+  orgNotes: { point: string; sources: Source[] }[];
+};
+
+export type RelevantWorkItem = {
+  title: string;
+  summary: string;
+  publishedAt: string | null;
+  sources: Source[];
+};
+
+export type RelevantWorkSection = { items: RelevantWorkItem[] };
+
 export type InvestigationResult = {
   executiveSignal: string;
   companyBriefing: CompanyBriefing;
+  people: PeopleSection;
+  structure: StructureSection;
+  relevantWork: RelevantWorkSection;
   findings: Finding[];
   openQuestions: string[];
 };

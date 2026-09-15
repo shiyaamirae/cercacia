@@ -47,9 +47,48 @@ export const companyBriefingSchema = z.object({
   ),
 });
 
+const personEntrySchema = z.object({
+  name: z.string(),
+  title: z.string(),
+  note: z.string(),
+  sources: z.array(sourceSchema),
+});
+
+export const peopleSectionSchema = z.object({
+  keyPeople: z.array(personEntrySchema),
+  hiringContacts: z.array(personEntrySchema),
+});
+
+export const structureSectionSchema = z.object({
+  teams: z.array(
+    z.object({
+      name: z.string(),
+      note: z.string(),
+      sources: z.array(sourceSchema),
+    })
+  ),
+  orgNotes: z.array(
+    z.object({ point: z.string(), sources: z.array(sourceSchema) })
+  ),
+});
+
+export const relevantWorkSectionSchema = z.object({
+  items: z.array(
+    z.object({
+      title: z.string(),
+      summary: z.string(),
+      publishedAt: z.string().nullable(),
+      sources: z.array(sourceSchema),
+    })
+  ),
+});
+
 export const investigationResultSchema = z.object({
   executiveSignal: z.string(),
   companyBriefing: companyBriefingSchema,
+  people: peopleSectionSchema,
+  structure: structureSectionSchema,
+  relevantWork: relevantWorkSectionSchema,
   findings: z.array(findingSchema),
   openQuestions: z.array(z.string()),
 });
@@ -57,9 +96,18 @@ export const investigationResultSchema = z.object({
 export type SourceValues = z.infer<typeof sourceSchema>;
 export type FindingValues = z.infer<typeof findingSchema>;
 export type CompanyBriefingValues = z.infer<typeof companyBriefingSchema>;
+export type PeopleSectionValues = z.infer<typeof peopleSectionSchema>;
+export type StructureSectionValues = z.infer<typeof structureSectionSchema>;
+export type RelevantWorkSectionValues = z.infer<
+  typeof relevantWorkSectionSchema
+>;
 export type InvestigationResultValues = z.infer<
   typeof investigationResultSchema
 >;
+
+/** Enforced backstop for "brief" (1-3 short sentences) on the new dashboard sections' free-text
+ * fields — not just a prompt request. ~280 chars is roughly 2-3 short sentences. */
+const BRIEF_TEXT_MAX = 280;
 
 /**
  * The LLM never sees or produces raw URLs — it can only cite sources by `ref`,
@@ -69,6 +117,12 @@ export type InvestigationResultValues = z.infer<
  */
 export function buildSynthesisOutputSchema(refs: [string, ...string[]]) {
   const ref = z.enum(refs);
+  const personEntry = z.object({
+    name: z.string(),
+    title: z.string(),
+    note: z.string().max(BRIEF_TEXT_MAX),
+    sourceRefs: z.array(ref).min(1),
+  });
 
   return z.object({
     executiveSignal: z.string(),
@@ -92,6 +146,41 @@ export function buildSynthesisOutputSchema(refs: [string, ...string[]]) {
           z.object({
             point: z.string(),
             whyItMatters: z.string(),
+            sourceRefs: z.array(ref).min(1),
+          })
+        )
+        .max(5),
+    }),
+    people: z.object({
+      keyPeople: z.array(personEntry).max(5),
+      hiringContacts: z.array(personEntry).max(3),
+    }),
+    structure: z.object({
+      teams: z
+        .array(
+          z.object({
+            name: z.string(),
+            note: z.string().max(BRIEF_TEXT_MAX),
+            sourceRefs: z.array(ref).min(1),
+          })
+        )
+        .max(5),
+      orgNotes: z
+        .array(
+          z.object({
+            point: z.string().max(BRIEF_TEXT_MAX),
+            sourceRefs: z.array(ref).min(1),
+          })
+        )
+        .max(3),
+    }),
+    relevantWork: z.object({
+      items: z
+        .array(
+          z.object({
+            title: z.string(),
+            summary: z.string().max(BRIEF_TEXT_MAX),
+            publishedAt: z.string().nullable(),
             sourceRefs: z.array(ref).min(1),
           })
         )

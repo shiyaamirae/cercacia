@@ -4,8 +4,11 @@ import type {
   Finding,
   InvestigationArea,
   InvestigationResult,
+  PeopleSection,
+  RelevantWorkSection,
   ResearchBrief,
   Source,
+  StructureSection,
 } from "@/types/investigation";
 import {
   buildSynthesisOutputSchema,
@@ -152,9 +155,48 @@ function assembleResult(
     })),
   };
 
+  const people: PeopleSection = {
+    keyPeople: data.people.keyPeople.map((person) => ({
+      name: person.name,
+      title: person.title,
+      note: person.note,
+      sources: resolve(person.sourceRefs),
+    })),
+    hiringContacts: data.people.hiringContacts.map((person) => ({
+      name: person.name,
+      title: person.title,
+      note: person.note,
+      sources: resolve(person.sourceRefs),
+    })),
+  };
+
+  const structure: StructureSection = {
+    teams: data.structure.teams.map((team) => ({
+      name: team.name,
+      note: team.note,
+      sources: resolve(team.sourceRefs),
+    })),
+    orgNotes: data.structure.orgNotes.map((item) => ({
+      point: item.point,
+      sources: resolve(item.sourceRefs),
+    })),
+  };
+
+  const relevantWork: RelevantWorkSection = {
+    items: data.relevantWork.items.map((item) => ({
+      title: item.title,
+      summary: item.summary,
+      publishedAt: item.publishedAt,
+      sources: resolve(item.sourceRefs),
+    })),
+  };
+
   return {
     executiveSignal: data.executiveSignal,
     companyBriefing,
+    people,
+    structure,
+    relevantWork,
     findings,
     openQuestions: data.openQuestions,
   };
