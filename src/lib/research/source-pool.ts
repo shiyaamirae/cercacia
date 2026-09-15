@@ -4,6 +4,7 @@ import { classifySourceTier } from "@/lib/research/source-tier";
 export type RawSource = {
   url: string;
   title: string;
+  publishedAt?: string | null;
 };
 
 export type PooledSource = {
@@ -13,7 +14,7 @@ export type PooledSource = {
   domain: string;
   sourceTier: SourceTier;
   accessedAt: string;
-  publishedAt: null;
+  publishedAt: string | null;
 };
 
 function extractDomain(url: string): string | null {
@@ -25,12 +26,12 @@ function extractDomain(url: string): string | null {
 }
 
 /**
- * Dedupes raw sources Tavily actually returned across all goal-level research
+ * Dedupes raw sources actually returned across all goal-level research
  * calls and assigns each a stable `ref`. The synthesis model only ever sees
  * these refs (see buildSynthesisOutputSchema) — never raw URLs — so a cited
- * source can't be anything other than something Tavily really retrieved.
- * Malformed URLs are dropped rather than passed through, per §16 (never show
- * a source that can't be verified).
+ * source can't be anything other than something really retrieved. Malformed
+ * URLs are dropped rather than passed through, per §16 (never show a source
+ * that can't be verified).
  */
 export function buildSourcePool(
   company: string,
@@ -51,7 +52,7 @@ export function buildSourcePool(
       domain,
       sourceTier: classifySourceTier(domain, company),
       accessedAt,
-      publishedAt: null,
+      publishedAt: raw.publishedAt ?? null,
     });
     nextIndex += 1;
   }

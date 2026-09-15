@@ -39,6 +39,18 @@ describe("buildSourcePool", () => {
     expect(pool[0].publishedAt).toBeNull();
   });
 
+  it("carries a real publishedAt through when the source provided one", () => {
+    const pool = buildSourcePool("Taxfix", [
+      {
+        url: "https://taxfix.de/blog/post",
+        title: "Post",
+        publishedAt: "2025-06-19T00:00:00.000Z",
+      },
+    ]);
+
+    expect(pool[0].publishedAt).toBe("2025-06-19T00:00:00.000Z");
+  });
+
   it("classifies tier using the same rules as classifySourceTier", () => {
     const pool = buildSourcePool("Taxfix", [
       { url: "https://taxfix.de/blog", title: "Official" },

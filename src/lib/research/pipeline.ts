@@ -5,7 +5,7 @@ import type {
 } from "@/types/investigation";
 import { buildResearchBrief } from "@/lib/research/brief";
 import { buildGoalResearchInput } from "@/lib/research/prompts";
-import { runGoalResearch } from "@/lib/research/tavily";
+import { runGoalResearch } from "@/lib/research/exa";
 import type { RawSource } from "@/lib/research/source-pool";
 import {
   synthesizeInvestigation,
@@ -35,10 +35,7 @@ async function researchGoal(
 
   try {
     const result = await runGoalResearch(input, (streamEvent) => {
-      if (
-        streamEvent.kind === "tool_response" &&
-        streamEvent.name === "WebSearch"
-      ) {
+      if (streamEvent.kind === "results") {
         onEvent({ type: "goal_stage", goal, stage: "reading_sources" });
       }
     });
@@ -52,8 +49,8 @@ async function researchGoal(
 }
 
 /**
- * Runs the full server-side research pipeline: one concurrent Tavily
- * Research task per selected goal (§38 — no hard-coded queries), then
+ * Runs the full server-side research pipeline: one concurrent Exa deep-
+ * search call per selected goal (§38 — no hard-coded queries), then
  * synthesis (§65). Never throws — every outcome, including total failure,
  * is reported through onEvent so the caller can stream it to the client.
  */

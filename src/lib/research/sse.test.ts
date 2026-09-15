@@ -19,7 +19,7 @@ describe("parseSseChunk", () => {
     expect(remainder).toBe('event: chat.completion.chunk\ndata: {"a":2');
   });
 
-  it("parses a bare event with no data line, like Tavily's terminal 'done' frame", () => {
+  it("parses a bare event with no data line (valid per the SSE spec)", () => {
     const { events } = parseSseChunk("event: done\n\n");
     expect(events).toEqual([{ event: "done", data: "" }]);
   });

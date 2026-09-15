@@ -4,7 +4,7 @@ import type { InvestigationSetup } from "@/types/investigation";
 const runGoalResearch = vi.fn();
 const synthesizeInvestigation = vi.fn();
 
-vi.mock("@/lib/research/tavily", () => ({
+vi.mock("@/lib/research/exa", () => ({
   runGoalResearch: (...args: unknown[]) => runGoalResearch(...args),
 }));
 vi.mock("@/lib/ai/synthesis", () => ({
@@ -56,7 +56,7 @@ describe("runInvestigationPipeline", () => {
   it("tolerates one goal failing as long as another goal returns usable sources", async () => {
     runGoalResearch
       .mockReset()
-      .mockRejectedValueOnce(new Error("Tavily timed out"))
+      .mockRejectedValueOnce(new Error("Exa timed out"))
       .mockResolvedValueOnce({
         content: "ok",
         sources: [{ url: "https://acme.io/a", title: "A" }],
@@ -78,9 +78,7 @@ describe("runInvestigationPipeline", () => {
   });
 
   it("reports no_sources and never calls synthesis when every goal fails", async () => {
-    runGoalResearch
-      .mockReset()
-      .mockRejectedValue(new Error("Tavily timed out"));
+    runGoalResearch.mockReset().mockRejectedValue(new Error("Exa timed out"));
     synthesizeInvestigation.mockReset();
 
     const events: unknown[] = [];

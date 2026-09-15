@@ -43,7 +43,7 @@ export type InvestigationResultValues = z.infer<
 
 /**
  * The LLM never sees or produces raw URLs — it can only cite sources by `ref`,
- * constrained to the pool built from Tavily's actual results (see
+ * constrained to the pool built from what was actually retrieved (see
  * lib/research/source-pool.ts). title/url/domain/accessedAt are resolved from
  * the pool afterward, never from model output, so a source can't be fabricated.
  */

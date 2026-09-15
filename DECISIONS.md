@@ -295,3 +295,57 @@ GitHub Action, not an npm package — outside the app's own dependency policy, b
 third-party action to trust). If this pattern is ever "simplified" back to a plain
 `paths-ignore`, branch protection breaks silently for the next doc-only PR — worth remembering
 before touching this file again.
+
+## 2026-09-15 — Exa replaces Tavily as the research/evidence-gathering provider
+
+**Context:** Tavily's Research API has no per-call credit cap of its own — cost is dynamic
+(4-110 credits per call on the "mini" model, agent-decided), and a live test run burned 464
+credits in a single investigation, on top of repeated 432 "plan limit exceeded" errors even
+after rotating to a fresh key. Evaluated three alternatives (`apiread.md`): Apify's
+`google-search-scraper` and SerpApi both return raw SERP data only (titles/snippets/URLs, no
+page content) — a real regression from what Tavily's Research API already gives us (it fetches
+and reads full pages), meaning either would require building a separate content-fetch step on
+top just to match current evidence depth. Exa didn't have that gap.
+
+**Live-probed Exa directly** (three real calls against a real query, "Taxfix AI strategy and
+AI product features," 2026-09-15) before deciding anything:
+
+1. Plain `/search` with `contents.text/highlights/summary`: real page text, real published
+   dates, $0.012.
+2. `/search` with `type: "deep"` + `outputSchema` requesting `{claims:[{claim,evidence}]}`:
+   well-grounded claim/evidence pairs, each with its own real `citations` (URLs) and
+   `confidence`, for $0.012 total — comparable depth to Tavily's Research API, at a known flat
+   cost instead of an opaque range.
+3. Same call with `stream: true`: confirmed real SSE event types (`results`, `grounding`,
+   `done`) usable for the same real per-goal progress UI Tavily's streaming gave us.
+
+**Chose:** Replace Tavily with Exa entirely (`lib/research/exa.ts` + `exa-events.ts`, `tavily.ts`
+
+- `tavily-events.ts` deleted). Designed as a drop-in behind `runGoalResearch`'s existing
+  contract (`(input, onEvent?) => Promise<{content: string, sources: RawSource[]}>`) —
+  `pipeline.ts` only needed an import swap and one event-kind check changed
+  (`streamEvent.kind === "results"` instead of Tavily's `tool_response`+`WebSearch` check).
+  `synthesis.ts`, `SYNTHESIS_PROMPT_V1`, `buildSynthesisPrompt`, and the whole ref-constrained
+  anti-hallucination citation mechanism (`buildSourcePool` + `buildSynthesisOutputSchema`'s
+  enum-constrained refs) are completely unchanged — Exa's `content` is a formatted
+  claim/evidence/citation-hint report fed into the exact same synthesis prompt shape a Tavily
+  report used to fill; the model still only _outputs_ ref-constrained citations, never a raw URL.
+
+**Why:** Exa's `grounding.confidence` (extraction confidence) is a different thing from PRD's
+fact/evidence_backed_inference/inference/unknown/contradicted classification (§14-18) — that
+reasoning stays entirely in our own `SYNTHESIS_PROMPT_V1`, unaffected by this swap. The real
+win is cost transparency and depth: Exa returns an exact `costDollars` breakdown per call
+(unlike Tavily's opaque credit accounting), and page-content + structured grounding in one
+request means no separate content-fetch layer to build, unlike the Apify/SerpApi alternatives.
+
+**Bonus fix enabled by the swap:** `RawSource`/`PooledSource.publishedAt` was hardcoded to
+`null` always — Tavily never fed us a usable published date. Exa's `results[]` returns real
+ISO `publishedDate` when available; `RawSource` now carries it through, directly improving
+PRD §34 compliance (show a real date when available, honest "unavailable" otherwise, never
+inferred) at no extra cost.
+
+**Tradeoff:** Exa's `deep` + `outputSchema` mode is newer and less battle-tested in this
+codebase than Tavily's Research API was after a full phase of live testing — worth watching
+output quality across a few more real investigations before fully trusting it. `TAVILY_API_KEY`
+removed from `.env.example`/`CLAUDE.md`; the real key is left alone in `.env` (harmless if
+unused, Shiyaa's call whether to remove it or keep it in case of a rollback).
