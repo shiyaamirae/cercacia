@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MotionConfig, motion } from "motion/react";
+import { CompanyBriefingSection } from "@/components/investigation/company-briefing-section";
 import { KeySignalCard } from "@/components/investigation/key-signal-card";
 import { useInvestigationStore } from "@/lib/store/investigation-store";
 import { selectKeySignals } from "@/lib/research/key-signals";
@@ -104,6 +105,17 @@ export default function InvestigationResultsPage() {
           variants={reveal}
           className="mt-8"
         >
+          <h2 className="font-display mb-4 text-xl">Company briefing</h2>
+          <CompanyBriefingSection companyBriefing={result.companyBriefing} />
+        </motion.section>
+
+        <motion.section
+          custom={4}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          className="mt-10"
+        >
           <h2 className="font-display mb-3 text-xl">
             What matters most before you apply
           </h2>
@@ -114,7 +126,7 @@ export default function InvestigationResultsPage() {
 
         {keySignals.length > 0 && (
           <motion.section
-            custom={4}
+            custom={5}
             initial="hidden"
             animate="visible"
             variants={reveal}
@@ -130,7 +142,7 @@ export default function InvestigationResultsPage() {
         )}
 
         <motion.section
-          custom={5}
+          custom={6}
           initial="hidden"
           animate="visible"
           variants={reveal}

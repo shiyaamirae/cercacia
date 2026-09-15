@@ -33,6 +33,21 @@ function validOutput(ref: string) {
   return {
     executiveSignal: "Acme Corp is expanding its product line.",
     sources: [{ ref, relevance: "high" }],
+    companyBriefing: {
+      companySummary: "Acme Corp makes industrial widgets.",
+      companyTags: [{ label: "1,200+ employees", sourceRefs: [ref] }],
+      idealFitSummary: "They favor engineers who ship reliable systems.",
+      idealFitSkills: [
+        { skill: "Distributed systems design", sourceRefs: [ref] },
+      ],
+      roleHighlights: [
+        {
+          point: "Acme Corp just launched a new product line.",
+          whyItMatters: "This role will likely support that expansion.",
+          sourceRefs: [ref],
+        },
+      ],
+    },
     findings: [
       {
         claim: "Acme Corp launched a new product line.",
@@ -70,6 +85,9 @@ describe("synthesizeInvestigation", () => {
     expect(callGroqStructured).not.toHaveBeenCalled();
     if (result.ok) {
       expect(result.result.findings[0].sources[0].url).toBe(
+        "https://acme.io/news"
+      );
+      expect(result.result.companyBriefing.companyTags[0].sources[0].url).toBe(
         "https://acme.io/news"
       );
     }
