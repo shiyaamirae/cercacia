@@ -295,3 +295,57 @@ GitHub Action, not an npm package — outside the app's own dependency policy, b
 third-party action to trust). If this pattern is ever "simplified" back to a plain
 `paths-ignore`, branch protection breaks silently for the next doc-only PR — worth remembering
 before touching this file again.
+
+## 2026-09-15 — Dashboard reads the Zustand-persisted result, no investigation ID/route param
+
+**Context:** Building Phase 3's progress screen + a first-pass dashboard
+(`/investigate/results`). The dashboard needs the completed `InvestigationResult`, but there's
+no server-side store beyond the one held-open `POST /api/investigate` request (ProjectInst §9,
+already decided in the NDJSON-over-SSE entry above) — no DB, no generated investigation ID to
+fetch by.
+
+**Chose:** The progress screen calls `setResult()` on the same Zustand store that already holds
+`setup` (persisted to localStorage) when the `result` pipeline event arrives, then does a
+client-side `router.push("/investigate/results")`. The dashboard route reads `setup`/`result`
+straight from the store; if either is missing (direct nav, refresh after localStorage was
+cleared, etc.) it redirects to `/investigate` rather than erroring.
+
+**Why:** Consistent with the existing setup-flow pattern (`commitSetup` → `/investigate/progress`
+already worked this way) and avoids introducing a fetch-by-ID architecture the app has no backing
+store for. `commitSetup` now also clears any stale `result` when a new investigation starts, so
+the dashboard never shows a previous run's data under a new company/role.
+
+**Tradeoff:** No shareable/bookmarkable URL per investigation, and a hard refresh on
+`/investigate/results` before Phase 6's reload/resume work is fully in place could show a stale
+result if `setup` changed but `result` didn't get cleared for some reason. Acceptable for now —
+Phase 6 (`ROADMAP.md`) already owns full reload/resume semantics; this doesn't block it.
+
+## 2026-09-15 — Progress screen fetch cost under Next dev's StrictMode double-invoke
+
+**Context:** Wiring `/investigate/progress` to the real `POST /api/investigate` stream inside a
+`useEffect`. Next's dev server wraps the app in `React.StrictMode`, which intentionally
+mount→cleanup→mount's every effect once in development to catch effects that aren't cleanup-safe.
+
+**Chose:** Used a real `AbortController`, created in the effect and aborted in its cleanup, and
+let both StrictMode invocations actually fire `fetch("/api/investigate", ...)` — the first
+request gets aborted client-side almost immediately, the second one is the one that actually
+completes and drives the UI. This is the standard React-recommended pattern for effects with
+fetch (make cleanup genuinely cancel the request, don't try to suppress the second invocation
+with a ref guard — a ref guard here would silently break the flow entirely, since cleanup would
+cancel the only request that was allowed to start).
+
+**Why:** Correctness over cleverness — a guard that tries to dodge StrictMode's double-invoke
+by skipping the second effect run doesn't know that cleanup already cancelled the first one, so
+the app would end up with zero live streams and a progress screen that never updates.
+
+**Tradeoff:** In `npm run dev` specifically (not `next build`/`next start`, and not
+production), the very first page load of `/investigate/progress` in a session will send two real
+`POST /api/investigate` requests — meaning two live Tavily/Mistral/Groq runs — before the
+aborted one is cut off client-side (the server-side pipeline for the aborted request isn't
+currently wired to `request.signal`, so it keeps running to completion regardless, and its
+result is just discarded). Worth knowing before manually testing this flow with real API keys:
+each dev-mode test click through the full flow costs roughly 2x one investigation's API spend,
+not 1x. Wiring `request.signal` through the pipeline to actually cancel the aborted run
+server-side, or starting the fetch from the setup form's submit handler instead of an effect,
+would remove this — not done here to avoid over-engineering ahead of a real need; flagged for
+Shiyaa to decide if it's worth doing before heavier manual testing begins.
