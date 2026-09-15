@@ -95,3 +95,28 @@ against stomping an established stack) and added Fraunces as the display face.
 for it is justified here because the brief is genuinely, explicitly editorial, but it needs to
 not become the reflexive choice for every future screen (tracked in `.hallmark/log.json`,
 gitignored, for diversification on the next build).
+
+## 2026-09-15 — RHF forms wired directly, no shadcn `form` wrapper
+
+**Context:** `CLAUDE.md` specifies React Hook Form + Zod for all forms, and the approved plan
+for the investigation setup screen called for installing shadcn's `form` primitive (its
+dedicated RHF+Zod integration component) alongside `card`/`input`/`label`/`textarea`/
+`radio-group`. `npx shadcn add form` silently no-op'd; `shadcn view @shadcn/form` showed the
+registry item exists but ships with `type: "registry:ui"` and no `files` at all in this shadcn
+generation (`shadcn@4.21.0`, `radix-nova` style) — Radix's own `radix-ui` package now exports a
+`Form` primitive directly, and this shadcn generation appears to point at that instead of
+vendoring a copy-paste wrapper.
+
+**Options:** Hand-write a `components/ui/form.tsx` wrapper around Radix's `Form` primitive to
+match the plan literally / wire RHF directly against the already-installed `Input`/`Textarea`/
+`Label`/`RadioGroup` via `register`/`Controller`, no wrapper.
+
+**Chose:** Direct `register`/`Controller` wiring, no form wrapper component.
+
+**Why:** There's nothing in this shadcn generation's registry to install — building one from
+scratch would be exactly the "unnecessary generic component" `ProjectInst.md` §33 warns against
+for a single form. `register`/`Controller` is standard RHF and equally explicit.
+
+**Tradeoff:** Every future form (§43's follow-up input included) repeats this pattern by hand
+instead of through a shared primitive. Worth revisiting only if a third or fourth form makes the
+duplication actually costly.

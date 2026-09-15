@@ -1,8 +1,92 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { MotionConfig, motion } from "motion/react";
+import { SetupForm } from "@/components/investigation/setup-form";
+import { InvestigationSummary } from "@/components/investigation/investigation-summary";
+import {
+  investigationSetupSchema,
+  type InvestigationSetupInput,
+  type InvestigationSetupValues,
+} from "@/lib/schemas/investigation";
+import { useInvestigationStore } from "@/lib/store/investigation-store";
+
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
+const reveal = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease: easeOut, delay: i * 0.07 },
+  }),
+};
+
 export default function InvestigatePage() {
+  const router = useRouter();
+  const commitSetup = useInvestigationStore((state) => state.commitSetup);
+
+  const form = useForm<
+    InvestigationSetupInput,
+    unknown,
+    InvestigationSetupValues
+  >({
+    resolver: zodResolver(investigationSetupSchema),
+    mode: "onBlur",
+    defaultValues: {
+      company: "",
+      role: "",
+      jobDescription: "",
+      goals: [],
+      customQuestion: "",
+      freshness: "6_months",
+    },
+  });
+
+  function onSubmit(values: InvestigationSetupValues) {
+    commitSetup(values);
+    router.push("/investigate/progress");
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-2 p-8">
-      <h1 className="text-2xl font-semibold">New investigation</h1>
-      <p className="text-muted-foreground">Setup form goes here.</p>
-    </main>
+    <MotionConfig reducedMotion="user">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-28 sm:px-10 sm:pt-16 sm:pb-16 lg:pb-16">
+        <div className="mb-10">
+          <motion.p
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            variants={reveal}
+            className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+          >
+            New investigation
+          </motion.p>
+          <motion.h1
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            variants={reveal}
+            className="font-display text-3xl tracking-tight sm:text-4xl"
+          >
+            Set up your investigation.
+          </motion.h1>
+        </div>
+
+        <motion.form
+          custom={2}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="grid gap-10 lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-12"
+          noValidate
+        >
+          <SetupForm form={form} />
+          <InvestigationSummary form={form} />
+        </motion.form>
+      </main>
+    </MotionConfig>
   );
 }
