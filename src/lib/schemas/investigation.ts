@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const investigationAreaSchema = z.enum([
+export const investigationAreaSchema = z.enum([
   "company",
   "role",
   "ai",
@@ -22,16 +22,17 @@ export const freshnessSchema = z.enum([
 
 export const investigationSetupSchema = z
   .object({
-    company: z.string().trim().min(1, "Company is required."),
-    role: z.string().trim().min(1, "Role is required."),
+    company: z.string().trim().min(1, "Company is required.").max(200),
+    role: z.string().trim().min(1, "Role is required.").max(200),
     jobDescription: z
       .string()
       .trim()
-      .min(10, "Paste the job description, or a link to it."),
+      .min(10, "Paste the job description, or a link to it.")
+      .max(20_000, "That job description is too long — please trim it."),
     goals: z
       .array(investigationAreaSchema)
       .min(1, "Pick at least one investigation goal."),
-    customQuestion: z.string().trim().optional(),
+    customQuestion: z.string().trim().max(1_000).optional(),
     freshness: freshnessSchema.default("6_months"),
   })
   .superRefine((values, ctx) => {

@@ -120,3 +120,73 @@ for a single form. `register`/`Controller` is standard RHF and equally explicit.
 **Tradeoff:** Every future form (§43's follow-up input included) repeats this pattern by hand
 instead of through a shared primitive. Worth revisiting only if a third or fourth form makes the
 duplication actually costly.
+
+## 2026-09-15 — `/api/investigate` streams over one held-open POST, not literal SSE
+
+**Context:** PRD §31 wants real research progress, not fake agent theater, and Tavily's Research
+API genuinely supports SSE streaming (confirmed live: `event: chat.completion.chunk` frames with
+real `Planning`/`WebSearch`/`Generating` tool activity). The natural browser-native way to consume
+server-sent events is `EventSource` against a `GET` endpoint, with a separate `POST` to create the
+task — but `EventSource` can't carry a POST body, so that shape needs a create-then-poll/stream
+pattern across two requests. On Vercel serverless, a Route Handler has no state that survives
+between two separate requests, and ProjectInst.md §9 explicitly forbids adding a queue/DB/Redis
+just to bridge that gap for V1.
+
+**Options:** Two-endpoint create+poll design (needs a persistence layer we're told not to add) /
+one long-lived `POST /api/investigate` request held open for the whole pipeline, with the server
+writing newline-delimited JSON progress events into the response body as work actually happens,
+read incrementally by the client via `fetch` + `ReadableStream` instead of `EventSource`.
+
+**Chose:** The single held-open POST, NDJSON-framed (not literal `text/event-stream`).
+
+**Why:** Delivers the same real-time, real-backend-state progress UX PRD wants, without adding
+infrastructure V1 explicitly shouldn't have. No task ever needs to be looked up by a second
+request, so there's nothing to persist.
+
+**Tradeoff:** Not literal SSE — a client can't use `EventSource`'s built-in reconnect. If the
+connection drops mid-investigation, the whole request has to restart (no resume-from-task-id).
+Acceptable for V1's single-user, single-session investigation flow; would need revisiting for a
+future multi-device/resumable-investigation feature.
+
+## 2026-09-15 — One Tavily Research task per selected goal, not one query for the whole investigation
+
+**Context:** PRD §38 wants dynamically generated, focused searches rather than one giant query.
+Tavily's Research API takes a single natural-language `input` per task and does its own internal
+multi-query decomposition — so "focused searches" has to be decided at the level of how many
+Research tasks we create, not how many raw search queries we hand-write.
+
+**Options:** One Research task per investigation (single `input` covering all selected goals) /
+one Research task per selected goal, run concurrently.
+
+**Chose:** One task per goal, concurrent (`Promise.all`).
+
+**Why:** Gives real per-goal progress stages that map directly to PRD §31's mockup (e.g.
+"Investigating AI signals" is one task's real lifecycle, not an invented label), and each
+`Finding.investigationArea` falls out for free from knowing which task produced it — no separate
+classification step needed for that field.
+
+**Tradeoff:** N Tavily credits per investigation instead of 1 (N = goals selected, typically
+3-6). Mitigated by defaulting every task to Tavily's `model: "mini"` (moderate budget per §40).
+
+## 2026-09-15 — Synthesis model never sees or produces raw source URLs
+
+**Context:** §16's no-hallucinated-sources rule is the product's central promise. A prompt
+instruction ("don't fabricate URLs") is compliance-dependent; PRD §22 wants structured output
+validated end-to-end instead of trusted on faith.
+
+**Options:** Ask the synthesis model to reproduce `title`/`url`/`domain` for each citation
+directly (relies on the model copying accurately) / have it cite sources only by a `ref` id
+(e.g. "S1") constrained to an enum built from the exact source pool Tavily actually returned,
+then resolve `url`/`title`/`domain`/`accessedAt` from that pool ourselves afterward.
+
+**Chose:** Ref-based citation, resolved server-side, never from model output.
+
+**Why:** Makes fabricated URLs structurally impossible rather than merely prompted against — the
+model literally cannot express a URL in its structured output, since the schema has no such
+field. `sourceTier` is likewise computed deterministically from the domain (see
+`classifySourceTier`) rather than asked of the model, for the same reason; only `relevance`
+(genuinely a contextual judgment) is model-assigned.
+
+**Tradeoff:** More moving parts — a source pool has to be built and deduped before synthesis can
+even construct its schema (the ref enum depends on it), and the synthesis prompt has to spell out
+the pool for the model to cite from. Worth it for a guarantee this central to the product.

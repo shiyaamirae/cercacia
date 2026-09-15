@@ -21,3 +21,44 @@ export type InvestigationSetup = {
   customQuestion?: string;
   freshness: Freshness;
 };
+
+export type ResearchBrief = InvestigationSetup;
+
+export type SourceTier = 1 | 2 | 3 | 4;
+
+export type Source = {
+  title: string;
+  url: string;
+  domain: string;
+  publishedAt: string | null;
+  accessedAt: string;
+  sourceTier: SourceTier;
+  relevance: "high" | "medium" | "low";
+};
+
+export type FindingClassification =
+  | "fact"
+  | "evidence_backed_inference"
+  | "inference"
+  | "unknown"
+  | "contradicted";
+
+export type Confidence = "high" | "medium" | "low";
+
+export type Finding = {
+  id: string;
+  claim: string;
+  classification: FindingClassification;
+  confidence: Confidence;
+  evidence: string[];
+  sources: Source[];
+  whyItMatters: string;
+  limitations: string | null;
+  investigationArea: InvestigationArea;
+};
+
+export type InvestigationResult = {
+  executiveSignal: string;
+  findings: Finding[];
+  openQuestions: string[];
+};
