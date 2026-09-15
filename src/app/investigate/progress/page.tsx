@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MotionConfig, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -44,14 +44,12 @@ function stageGlyph(stage: GoalStage) {
 
 async function readInvestigationStream(
   setup: InvestigationSetup,
-  signal: AbortSignal,
   onEvent: (event: PipelineEvent) => void
 ): Promise<void> {
   const response = await fetch("/api/investigate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(setup),
-    signal,
   });
 
   if (!response.body) {
@@ -111,11 +109,22 @@ function InvestigationRun({ setup, onRetry }: InvestigationRunProps) {
   );
   const [errorReason, setErrorReason] =
     useState<SynthesisFailureReason>("provider_failure");
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    const controller = new AbortController();
+    // Deliberately a "run once" ref guard, not a subscription: this starts a
+    // real, non-idempotent investigation (Tavily/Mistral/Groq calls with
+    // real cost). React dev StrictMode double-invokes effects, and aborting
+    // the first invocation's fetch doesn't stop the server — the pipeline
+    // has no request.signal wiring, so it keeps researching against a
+    // now-dead stream controller and throws once it tries to send an event
+    // (see DECISIONS.md). Skipping the second invocation entirely, rather
+    // than starting-then-aborting, is what actually prevents the duplicate
+    // request server-side.
+    if (startedRef.current) return;
+    startedRef.current = true;
 
-    readInvestigationStream(setup, controller.signal, (event) => {
+    readInvestigationStream(setup, (event) => {
       if (event.type === "goal_stage") {
         setStages((current) => ({ ...current, [event.goal]: event.stage }));
       } else if (event.type === "synthesizing") {
@@ -128,15 +137,10 @@ function InvestigationRun({ setup, onRetry }: InvestigationRunProps) {
         setErrorReason(event.reason);
         setPhase("error");
       }
-    }).catch((error: unknown) => {
-      if (error instanceof DOMException && error.name === "AbortError") return;
+    }).catch(() => {
       setErrorReason("provider_failure");
       setPhase("error");
     });
-
-    return () => {
-      controller.abort();
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setup]);
 

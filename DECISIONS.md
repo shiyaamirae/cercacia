@@ -384,3 +384,36 @@ path (`attemptProvider` in `synthesis.ts`) — a slightly larger structured-outp
 Mistral/Groq to get right in one call. Caps are maximums, not exact counts, so a
 weak-evidence investigation may show fewer than 5 tags/3 skills/5 highlights, or an honest
 "not enough evidence" empty state per sub-section — this is intentional, not a bug.
+
+## 2026-09-15 — Reversed the StrictMode-fetch decision above: skip the duplicate entirely
+
+**Context:** The "flagged for Shiyaa to decide" tradeoff in the entry above turned out worse
+than predicted, confirmed live: a real test run showed two concurrent
+`POST /api/investigate` pipelines (server log had two full sets of per-goal failures from one
+page load, plus `Investigation pipeline crashed: TypeError: Invalid state: Controller is
+already closed` — the orphaned duplicate's pipeline kept running against a stream controller
+the platform had already torn down once its client-side fetch was aborted, and every
+subsequent `send()` in that orphaned pipeline threw the same error). This wasn't just wasted
+spend as predicted — doubling concurrent Tavily load from one page click is a likely
+contributor to hitting Tavily's real plan-limit (432) on the _visible_ investigation too
+(`company`/`people` failed there in the same run).
+
+**Chose:** Reverted to a `useRef` "started" guard that skips StrictMode's second effect
+invocation entirely — no `AbortController`, no cleanup. `readInvestigationStream` no longer
+takes a `signal` param.
+
+**Why:** The previous entry rejected a ref guard on the reasoning that cleanup would cancel
+the only request StrictMode's double-invoke lets through, leaving zero live streams. That
+reasoning was correct for a _cleanup-that-aborts_ combined with a ref guard — but it doesn't
+apply to a ref guard _without_ a cleanup at all. This is a one-time, non-idempotent action
+(real API spend), not a subscription — React's own guidance explicitly carves out exactly this
+case as a valid use of a ref guard, distinct from the general "don't fight StrictMode" advice
+for subscriptions/timers. Skipping the second invocation outright — rather than starting it
+and aborting it — is what actually prevents the duplicate server-side pipeline from ever
+starting, since abort was never able to stop the server-side work anyway (no `request.signal`
+wiring into the pipeline).
+
+**Tradeoff:** A genuine unmount mid-research (user navigates away from `/investigate/progress`
+manually) no longer cancels anything client-side either — but it never actually stopped the
+server-side pipeline before now, so this gives up nothing that was real. `key={attempt}` on
+`InvestigationRun` still resets the ref on retry, so each retry still fires exactly once.
