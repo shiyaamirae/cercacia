@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { MotionConfig, motion } from "motion/react";
 import { SetupForm } from "@/components/investigation/setup-form";
 import { InvestigationSummary } from "@/components/investigation/investigation-summary";
 import {
@@ -11,6 +12,17 @@ import {
   type InvestigationSetupValues,
 } from "@/lib/schemas/investigation";
 import { useInvestigationStore } from "@/lib/store/investigation-store";
+
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
+const reveal = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease: easeOut, delay: i * 0.07 },
+  }),
+};
 
 export default function InvestigatePage() {
   const router = useRouter();
@@ -39,24 +51,42 @@ export default function InvestigatePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-28 sm:px-10 sm:pt-16 sm:pb-16 lg:pb-16">
-      <div className="mb-10">
-        <p className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          New investigation
-        </p>
-        <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
-          Set up your investigation.
-        </h1>
-      </div>
+    <MotionConfig reducedMotion="user">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-28 sm:px-10 sm:pt-16 sm:pb-16 lg:pb-16">
+        <div className="mb-10">
+          <motion.p
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            variants={reveal}
+            className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+          >
+            New investigation
+          </motion.p>
+          <motion.h1
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            variants={reveal}
+            className="font-display text-3xl tracking-tight sm:text-4xl"
+          >
+            Set up your investigation.
+          </motion.h1>
+        </div>
 
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="grid gap-10 lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-12"
-        noValidate
-      >
-        <SetupForm form={form} />
-        <InvestigationSummary form={form} />
-      </form>
-    </main>
+        <motion.form
+          custom={2}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="grid gap-10 lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-12"
+          noValidate
+        >
+          <SetupForm form={form} />
+          <InvestigationSummary form={form} />
+        </motion.form>
+      </main>
+    </MotionConfig>
   );
 }
