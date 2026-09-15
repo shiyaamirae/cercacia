@@ -1,5 +1,10 @@
 # CercaCia
 
+![status](https://img.shields.io/badge/status-in%20development-orange)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
+![license](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
+
 An evidence-backed research workspace that investigates a company and role before you apply —
 driven by your specific research questions, not a generic company summary.
 
@@ -59,4 +64,15 @@ git history) — ask the maintainer if you need them.
   it doesn't find one for you.
 - Synthesis currently runs on Gemini/Groq instead of OpenAI, a testing-phase cost decision to
   be revisited at deployment.
-- Nothing is built yet — this repo is at the planning/scaffold stage.
+- App is scaffolded (Next.js, full frontend stack, two placeholder routes) — the real UI and
+  research pipeline haven't been built yet.
+
+## Contributing
+
+Solo project, not currently accepting outside contributions. Engineering standards for anyone
+working in this repo (including AI agents) are in `dev.md` and `CLAUDE.md`.
+
+## License
+
+All rights reserved. This repository is shared publicly for portfolio and reference purposes
+only — no license is granted to use, copy, modify, or distribute this code.

@@ -39,7 +39,8 @@ Concretely, for this repo:
   `docs/...`), never commit directly to `main`.
 - **Commits:** Conventional Commits, present-tense imperative, one logical change per commit,
   every commit builds and lints clean.
-- **PRs:** every change goes through a PR filled out from `pull_request_template.md` for real
+- **PRs:** every change goes through a PR filled out from `.github/pull_request_template.md`
+  for real
   (actual verification steps, actual out-of-scope notes). **Open the PR, but don't merge
   without Shiyaa's go-ahead** — the repo is public and PRs double as the paper trail.
 - **No broken links:** before committing, verify internal doc cross-references (e.g.
@@ -50,8 +51,9 @@ Concretely, for this repo:
   touched files under the line limits, `DECISIONS.md` updated for non-obvious choices.
 
 **Public vs. private docs, reconciled:** dev.md expects `README.md`, `DECISIONS.md`,
-`.env.example`, `dev.md`, and `pull_request_template.md` to live at repo root and be
-committed — that widens "only CLAUDE.md is public" from before. Adopted as: those five join
+`.env.example`, `dev.md`, and a PR template to live at repo root and be committed (the PR
+template lives at `.github/pull_request_template.md`, GitHub's conventional location — same
+effect) — that widens "only CLAUDE.md is public" from before. Adopted as: those five join
 `CLAUDE.md` as tracked/public. `PRD.md`, `ProjectInst.md`, `SHIYAA-LOG.md`, `context.md`, and
 `ROADMAP.md` stay gitignored/private — they're the AI-collaboration planning layer, not
 engineering-practice artifacts. `DECISIONS.md` and `SHIYAA-LOG.md` can cover the same event
@@ -201,7 +203,7 @@ credits on repeated attempts (mock data is fine for UI iteration — see `Projec
 **Public (committed):**
 
 - This file, plus engineering standards: `dev.md`
-- PR checklist: `pull_request_template.md`
+- PR checklist: `.github/pull_request_template.md`
 - Project overview: `README.md`
 - Public decision log: `DECISIONS.md`
 - Env var template (dummy values): `.env.example`
