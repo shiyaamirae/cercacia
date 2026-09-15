@@ -15,7 +15,7 @@ type GroqChatCompletion = {
 /**
  * Calls Groq's strict JSON-schema structured output and returns the parsed
  * JSON value (unvalidated — callers Zod-validate against the schema they
- * passed). Fallback provider when Gemini fails or is rate-limited.
+ * passed). Fallback provider when Mistral fails or is rate-limited.
  */
 export async function callGroqStructured(
   prompt: string,
