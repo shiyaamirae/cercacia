@@ -120,3 +120,145 @@ for a single form. `register`/`Controller` is standard RHF and equally explicit.
 **Tradeoff:** Every future form (§43's follow-up input included) repeats this pattern by hand
 instead of through a shared primitive. Worth revisiting only if a third or fourth form makes the
 duplication actually costly.
+
+## 2026-09-15 — `/api/investigate` streams over one held-open POST, not literal SSE
+
+**Context:** PRD §31 wants real research progress, not fake agent theater, and Tavily's Research
+API genuinely supports SSE streaming (confirmed live: `event: chat.completion.chunk` frames with
+real `Planning`/`WebSearch`/`Generating` tool activity). The natural browser-native way to consume
+server-sent events is `EventSource` against a `GET` endpoint, with a separate `POST` to create the
+task — but `EventSource` can't carry a POST body, so that shape needs a create-then-poll/stream
+pattern across two requests. On Vercel serverless, a Route Handler has no state that survives
+between two separate requests, and ProjectInst.md §9 explicitly forbids adding a queue/DB/Redis
+just to bridge that gap for V1.
+
+**Options:** Two-endpoint create+poll design (needs a persistence layer we're told not to add) /
+one long-lived `POST /api/investigate` request held open for the whole pipeline, with the server
+writing newline-delimited JSON progress events into the response body as work actually happens,
+read incrementally by the client via `fetch` + `ReadableStream` instead of `EventSource`.
+
+**Chose:** The single held-open POST, NDJSON-framed (not literal `text/event-stream`).
+
+**Why:** Delivers the same real-time, real-backend-state progress UX PRD wants, without adding
+infrastructure V1 explicitly shouldn't have. No task ever needs to be looked up by a second
+request, so there's nothing to persist.
+
+**Tradeoff:** Not literal SSE — a client can't use `EventSource`'s built-in reconnect. If the
+connection drops mid-investigation, the whole request has to restart (no resume-from-task-id).
+Acceptable for V1's single-user, single-session investigation flow; would need revisiting for a
+future multi-device/resumable-investigation feature.
+
+## 2026-09-15 — One Tavily Research task per selected goal, not one query for the whole investigation
+
+**Context:** PRD §38 wants dynamically generated, focused searches rather than one giant query.
+Tavily's Research API takes a single natural-language `input` per task and does its own internal
+multi-query decomposition — so "focused searches" has to be decided at the level of how many
+Research tasks we create, not how many raw search queries we hand-write.
+
+**Options:** One Research task per investigation (single `input` covering all selected goals) /
+one Research task per selected goal, run concurrently.
+
+**Chose:** One task per goal, concurrent (`Promise.all`).
+
+**Why:** Gives real per-goal progress stages that map directly to PRD §31's mockup (e.g.
+"Investigating AI signals" is one task's real lifecycle, not an invented label), and each
+`Finding.investigationArea` falls out for free from knowing which task produced it — no separate
+classification step needed for that field.
+
+**Tradeoff:** N Tavily credits per investigation instead of 1 (N = goals selected, typically
+3-6). Mitigated by defaulting every task to Tavily's `model: "mini"` (moderate budget per §40).
+
+## 2026-09-15 — Synthesis model never sees or produces raw source URLs
+
+**Context:** §16's no-hallucinated-sources rule is the product's central promise. A prompt
+instruction ("don't fabricate URLs") is compliance-dependent; PRD §22 wants structured output
+validated end-to-end instead of trusted on faith.
+
+**Options:** Ask the synthesis model to reproduce `title`/`url`/`domain` for each citation
+directly (relies on the model copying accurately) / have it cite sources only by a `ref` id
+(e.g. "S1") constrained to an enum built from the exact source pool Tavily actually returned,
+then resolve `url`/`title`/`domain`/`accessedAt` from that pool ourselves afterward.
+
+**Chose:** Ref-based citation, resolved server-side, never from model output.
+
+**Why:** Makes fabricated URLs structurally impossible rather than merely prompted against — the
+model literally cannot express a URL in its structured output, since the schema has no such
+field. `sourceTier` is likewise computed deterministically from the domain (see
+`classifySourceTier`) rather than asked of the model, for the same reason; only `relevance`
+(genuinely a contextual judgment) is model-assigned.
+
+**Tradeoff:** More moving parts — a source pool has to be built and deduped before synthesis can
+even construct its schema (the ref enum depends on it), and the synthesis prompt has to spell out
+the pool for the model to cite from. Worth it for a guarantee this central to the product.
+
+## 2026-09-15 — Primary synthesis provider switched from Gemini to Mistral
+
+**Context:** The first version of Phase 2 shipped with Gemini as primary synthesis provider (see
+the 2026-09-15 "Gemini + Groq for synthesis" entry above). Live end-to-end testing that same day
+exhausted Gemini's free-tier quota (`generate_content_free_tier_requests`, limit 20/day) — Gemini
+became unavailable for the rest of the day after a handful of real pipeline runs, well before any
+real usage volume.
+
+**Options:** Wait out / upgrade the Gemini quota and keep Gemini primary / switch primary to
+Mistral (Shiyaa's call, key supplied directly) / drop the fallback pattern entirely.
+
+**Chose:** Mistral as primary synthesis provider, Groq remains the fallback — same
+retry-then-fallback-then-fail-gracefully design as before, just swapping which provider is
+tried first. `src/lib/ai/gemini.ts` deleted; `src/lib/ai/mistral.ts` added
+(`callMistralStructured`, `POST https://api.mistral.ai/v1/chat/completions`, OpenAI-compatible
+`response_format: {type: "json_schema", json_schema: {name, schema, strict: true}}` — same
+shape as Groq, since Mistral's chat completions API is OpenAI-compatible). `MISTRAL_API_KEY`
+replaces `GEMINI_API_KEY` in `.env`/`.env.example`/`CLAUDE.md`.
+
+Model actually used: `ministral-3b-2512`, not `mistral-large-latest`/`mistral-medium-latest` as
+first tried — this account's key returned `x-ratelimit-limit-req-minute: 0` for medium (and a
+403 "not available in your subscription tier" for large), confirmed live via response headers;
+`ministral-3b` is what's actually usable on this tier (750 req/min). Live-verified the smaller
+model handles the full synthesis schema/prompt correctly, though it initially conflated the
+`evidence` field (meant to hold descriptive excerpts) with `sourceRefs` (citation ids) — fixed
+by adding an explicit instruction distinguishing the two to `SYNTHESIS_PROMPT_V1`, re-verified
+live afterward.
+
+**Why:** Shiyaa's decision, made directly in response to the quota problem reported after Phase
+2's live verification — a 20-request daily cap makes Gemini impractical even for continued
+development, let alone real usage.
+
+**Tradeoff:** A 3B model is meaningfully smaller than Groq's 20B fallback or what
+medium/large-tier Mistral would have been — the evidence/sourceRefs confusion above is a real
+symptom of that, worth keeping an eye on for other subtle instruction-following gaps as more of
+the pipeline gets built. Groq's own fallback behavior (see the "structured output" decision in
+Phase 2) is now the only safety net if Mistral also hits a limit or outage — worth watching for
+the same
+kind of quota surprise Gemini had, though Mistral's paid key (vs. Gemini's free tier) should not
+have the same low daily cap. Whether to revert to OpenAI at deployment (open item since Phase 0)
+is unaffected either way.
+
+## 2026-09-15 — Mistral model bumped from ministral-3b to ministral-14b
+
+**Context:** The Gemini→Mistral switch above shipped with `ministral-3b-2512`, the smallest
+model confirmed usable on this key's tier at the time — `mistral-large`/`medium` were both
+unusable (403 / a confirmed-live 0 req/min cap). 3b worked but was the model that produced the
+evidence/sourceRefs field confusion the prompt fix above addresses. Shiyaa asked directly whether
+`ministral-14b-2512` would help.
+
+**Options:** Keep `ministral-3b` (cheapest, fastest, already working) / bump to `ministral-14b`
+(untested at the time) / keep pushing on `mistral-medium`'s 0 req/min cap (a tier/billing
+problem, not something retrying fixes).
+
+**Chose:** `ministral-14b-2512`. Checked live first, same rigor as every other provider call in
+this build: confirmed usable (`x-ratelimit-limit-req-minute: 30`, `~937K tokens/min` — plenty for
+one synthesis call per investigation, unlike medium's 0), then ran a real end-to-end pipeline
+call against the actual Taxfix JD before committing to the change.
+
+**Why:** The live run succeeded on Mistral's first attempt (no retry, no Groq fallback needed)
+and produced a richer, cleaner result than 3b's first run: 13 findings and 13 open questions
+(vs. 9 and 5), correctly separated `evidence` (descriptive excerpts) from `sourceRefs` (clean ids)
+without needing the corrective prompt instruction to kick in, and used
+`evidence_backed_inference` vs. `fact` appropriately across different claims in the same
+result — the fact/inference distinction is the single most load-bearing product behavior
+(ProjectInst §23), so a model that holds it more reliably is worth the small rate-limit headroom
+tradeoff.
+
+**Tradeoff:** 30 req/min instead of 3b's 750 — still far more than this pipeline's one-call
+-per-investigation pattern needs, but worth knowing if investigation volume ever scales up
+significantly before a further model/tier decision.
