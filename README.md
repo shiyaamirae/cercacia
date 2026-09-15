@@ -34,7 +34,7 @@ Not deployed yet — local development only.
 | State       | Zustand                                                 | Cross-component investigation state (setup, progress, results) — form-local state stays in RHF                                                       |
 | Validation  | Zod                                                     | Every AI-generated structured object (findings, sources) is Zod-validated before it enters app state — malformed evidence is never silently accepted |
 | Research    | Tavily Research API                                     | Purpose-built multi-step research/search endpoint with real progress streaming — no custom crawler                                                   |
-| Synthesis   | Mistral (primary) + Groq (fallback) — testing phase     | Cost control during development; see `CLAUDE.md`'s Active AI Provider Override for the reasoning and what this reverts to at deployment              |
+| Synthesis   | Mistral (primary) + Groq (fallback) — testing phase     | Cost control during development; see `CLAUDE.md`'s "Tech Stack — Active Overrides" for the reasoning and what this reverts to at deployment          |
 | Persistence | localStorage                                            | No accounts or cross-device sync needed for a single-user V1                                                                                         |
 | Deployment  | Vercel (planned)                                        | Native Next.js support                                                                                                                               |
 
