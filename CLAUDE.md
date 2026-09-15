@@ -67,9 +67,68 @@ behavior, cost, or scope).
 
 ## Tech Stack
 
-Next.js App Router, TypeScript, Tailwind, shadcn/ui, Zod, Tavily Research API, localStorage,
-Vercel. Full rationale and constraints: `PRD.md` §44, `ProjectInst.md` §7–10 — **except the AI
-reasoning/synthesis provider, which is overridden below.**
+**Frontend layers (Shiyaa's spec):**
+
+```
+Next.js
+   ↓
+TypeScript
+   ↓
+Tailwind CSS
+   ↓
+shadcn/ui
+   ↓
+Lucide React
+   ↓
+Motion for React
+   ↓
+React Hook Form + Zod
+   ↓
+Zustand
+```
+
+**Backend/infra (unchanged from PRD.md §44):** Next.js Route Handlers (no separate backend),
+Tavily Research API, localStorage for persistence, Vercel for deployment.
+
+Three layers here are not in the original PRD/ProjectInst spec: Motion for React, React Hook
+Form, and Zustand. Details and rationale below. Everything else: `PRD.md` §44,
+`ProjectInst.md` §7–10 — **except the AI reasoning/synthesis provider, overridden separately
+below.**
+
+### Motion for React (added)
+
+Added for animation. Use it for state transitions that carry real meaning, not decoration:
+
+- research progress (sources discovered → evidence extracted → signals emerging), replacing
+  any temptation toward fake "AI agent is thinking" theater — that's explicitly banned
+  regardless (`PRD.md` §32)
+- evidence cards appearing, expandable evidence, source cards entering as research streams in
+- section/tab transitions, layout changes, drawers/modals
+- hover/press micro-interactions, animated numbers
+
+shadcn/ui is the interaction-primitive layer (Tabs, Accordion, Dialog, Tooltip, Dropdown,
+Sheet, Badge, Button, Card, Progress, Command menu, Skeleton, Toast) — but don't ship it
+looking like default shadcn. Establish CercaCia's own visual language (editorial, calm,
+case-file — see `PRD.md` §51–52) on top of those primitives, not the out-of-the-box theme.
+Package: `motion` (the current name for what was Framer Motion) — pin the current stable
+version at scaffold time.
+
+### React Hook Form + Zod (added)
+
+Added for the investigation setup form (company, role, JD, goals, freshness) and any other
+user-input form (follow-up input, etc.). Zod schemas double as both form validation and the
+existing requirement to validate AI-generated structured output (`ProjectInst.md` §21) — reuse
+the same schema shapes where the form input and the stored data are the same shape, don't
+define them twice.
+
+### Zustand (added — overrides ProjectInst.md §35)
+
+**`ProjectInst.md` §35 explicitly says not to introduce Zustand unless state complexity
+demonstrably requires it, and to use plain React state initially.** Shiyaa has decided to
+include Zustand in the standard stack from the start rather than wait for that threshold. Use
+it for cross-component investigation state (active investigation, findings/evidence, research
+progress, follow-up conversation) — form-local state still belongs in React Hook Form, not
+Zustand.
 
 ## Active AI Provider Override (Testing Phase — until deployment)
 
