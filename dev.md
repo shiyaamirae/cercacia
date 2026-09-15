@@ -12,6 +12,7 @@ Stack-specific details (framework, folder names, libraries, domain rules) live i
 No spaghetti. If a change makes the codebase harder to understand than it was before, it does not ship — even if it works.
 
 Three questions before any code is written:
+
 1. Where does this belong? (Which layer, which file, why there.)
 2. What already exists that does this? (Reuse before writing.)
 3. What breaks if this is wrong? (That's what gets tested.)
@@ -68,6 +69,7 @@ DECISIONS.md
 Delete, don't comment out. Git remembers everything; the repo doesn't need to.
 
 Not allowed in a commit:
+
 - Commented-out blocks of code
 - `console.log` left over from debugging (a deliberate, structured logger is fine)
 - Unused imports, variables, files, dependencies
@@ -112,11 +114,13 @@ Not allowed in a commit:
 ## 8. Git
 
 **Branches**
+
 - `main` is always deployable. Never commit directly to it, even solo.
 - One branch per unit of work: `feat/expert-tracker-filters`, `fix/date-parsing`, `refactor/api-client`.
 - Branch lives for hours or days, not weeks.
 
 **Commits**
+
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, `style:`, `perf:`.
 - Present tense, imperative: `feat: add retry logic to digest fetcher`.
 - **One logical change per commit.** A commit that touches auth, styling, and the README is three commits.
@@ -124,6 +128,7 @@ Not allowed in a commit:
 - Banned messages: `update`, `fix`, `wip`, `asdf`, `final`, `final v2`, `changes`.
 
 **Pull requests**
+
 - Every change goes through a PR, even solo. The PR description is free case-study material later.
 - PR body answers: what changed, why, how it was verified, what was intentionally left out.
 - PRs stay small. A 2000-line PR gets reviewed by nobody, including you.
@@ -136,17 +141,20 @@ Not allowed in a commit:
 Coverage percentage is not the goal. Confidence is.
 
 **Must be tested:**
+
 - Core business logic and anything with branching rules
 - Data transformations and parsers
 - Anything involving money, dates, timezones, or auth
 - Every bug that gets fixed (write the failing test first)
 
 **Not worth testing:**
+
 - Static presentational components
 - Third-party library behaviour
 - Trivial getters and pass-through wrappers
 
 **Rules:**
+
 - Test names describe behaviour: `returns empty array when no articles match the topic filter`.
 - One assertion concept per test.
 - Tests are deterministic. No reliance on real network, real time, or test execution order.
@@ -167,6 +175,7 @@ Coverage percentage is not the goal. Confidence is.
 ## 11. Documentation
 
 **README.md** — written for someone who has never seen the project:
+
 1. What it does, in one sentence
 2. The problem it solves and who for
 3. Live link + a screenshot or GIF
@@ -179,6 +188,7 @@ Coverage percentage is not the goal. Confidence is.
 
 ```md
 ## 2026-09-06 — Local Ollama instead of a hosted API
+
 **Context:** Needed inference for the memory hub.
 **Options:** OpenAI API / Claude API / local Ollama.
 **Chose:** Ollama.
@@ -188,18 +198,20 @@ Coverage percentage is not the goal. Confidence is.
 
 This file is the single highest-signal thing in the repo. It's the difference between "built a thing" and "made engineering decisions."
 
-**Code comments** explain *why*, never *what*. If a comment explains what the code does, rewrite the code instead.
+**Code comments** explain _why_, never _what_. If a comment explains what the code does, rewrite the code instead.
 
 ---
 
 ## 12. Working with Claude Code
 
 **Before writing anything**
+
 - `CLAUDE.md` exists and is current. Read it and this file at the start of every session.
 - Non-trivial work goes through **plan mode**. Show the plan, get approval, then write.
 - The plan names the files it will touch and why. If a file isn't in the plan, don't touch it.
 
 **While building**
+
 - One scoped task per prompt. "Add the login form component, no auth logic yet" — not "build authentication."
 - Commit after each logical unit, not in one dump at the end.
 - Match the patterns already in the codebase. Never introduce a second way of doing something that already has a way.
@@ -208,6 +220,7 @@ This file is the single highest-signal thing in the repo. It's the difference be
 - Never generate placeholder or mock data in production paths.
 
 **Before every commit — Definition of Done**
+
 - [ ] Types pass strict, no new `any`
 - [ ] Lint and format clean
 - [ ] Tests pass, and new logic has tests

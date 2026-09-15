@@ -57,8 +57,8 @@ effect) — that widens "only CLAUDE.md is public" from before. Adopted as: thos
 `CLAUDE.md` as tracked/public. `PRD.md`, `ProjectInst.md`, `SHIYAA-LOG.md`, `context.md`, and
 `ROADMAP.md` stay gitignored/private — they're the AI-collaboration planning layer, not
 engineering-practice artifacts. `DECISIONS.md` and `SHIYAA-LOG.md` can cover the same event
-from different angles: `DECISIONS.md` is the neutral public record of *why* something was
-built a certain way; `SHIYAA-LOG.md` is the private record of *when Shiyaa overrode the AI*.
+from different angles: `DECISIONS.md` is the neutral public record of _why_ something was
+built a certain way; `SHIYAA-LOG.md` is the private record of _when Shiyaa overrode the AI_.
 
 ## Workflow
 
@@ -147,25 +147,27 @@ is superseded for now.** Until deployment:
 All other rules around synthesis are unchanged regardless of provider: structured output only
 (no free-form string parsing for critical data), Zod validation before anything enters app
 state, retry once on invalid structure then fail gracefully (`ProjectInst.md` §22), fact vs.
-inference discipline (§14, §23), no hallucinated sources (§16). This override changes *which
-model* does the reasoning, not the evidence-quality bar.
+inference discipline (§14, §23), no hallucinated sources (§16). This override changes _which
+model_ does the reasoning, not the evidence-quality bar.
 
 Reasoning and full context: `SHIYAA-LOG.md` (2026-09-15 entry). Whether this reverts to OpenAI
 at deployment or stays on Gemini/Groq is undecided — don't assume either way without asking.
 
 ## Commands
 
-Repo is not yet scaffolded. Once it is (standard `create-next-app` + Vercel deploy target),
-expect:
-
 ```
-npm run dev      # local dev server
-npm run build    # production build — must pass before calling any feature done
-npm run lint      # project lint
-npx tsc --noEmit # type check
+npm run dev           # local dev server
+npm run build         # production build — must pass before calling any feature done
+npm run lint          # ESLint
+npm run typecheck     # tsc --noEmit
+npm run test          # vitest run --passWithNoTests
+npm run format        # prettier --write .
+npm run format:check  # prettier --check . (what CI runs)
 ```
 
-Update this section if the actual `package.json` scripts end up different.
+husky + lint-staged run ESLint/Prettier on staged files at pre-commit automatically — see
+`.husky/pre-commit`. GitHub Actions CI (`.github/workflows/ci.yml`) runs lint → typecheck →
+test → build on every PR and push to `main`.
 
 ## Project Structure
 
