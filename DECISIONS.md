@@ -450,3 +450,108 @@ tags, role highlights).
 need to run a follow-up investigation or accept narrower initial scope. Revisit the number if
 Tavily's actual per-call cost in practice sits meaningfully below the 110-credit ceiling once
 more real usage data exists.
+
+## 2026-09-15 — Exa replaces Tavily as the research/evidence-gathering provider
+
+**Context:** Tavily's Research API has no per-call credit cap of its own — cost is dynamic
+(4-110 credits per call on the "mini" model, agent-decided), and a live test run burned 464
+credits in a single investigation, on top of repeated 432 "plan limit exceeded" errors even
+after rotating to a fresh key. Evaluated three alternatives (`apiread.md`): Apify's
+`google-search-scraper` and SerpApi both return raw SERP data only (titles/snippets/URLs, no
+page content) — a real regression from what Tavily's Research API already gives us (it fetches
+and reads full pages), meaning either would require building a separate content-fetch step on
+top just to match current evidence depth. Exa didn't have that gap.
+
+**Live-probed Exa directly** (three real calls against a real query, "Taxfix AI strategy and
+AI product features," 2026-09-15) before deciding anything:
+
+1. Plain `/search` with `contents.text/highlights/summary`: real page text, real published
+   dates, $0.012.
+2. `/search` with `type: "deep"` + `outputSchema` requesting `{claims:[{claim,evidence}]}`:
+   well-grounded claim/evidence pairs, each with its own real `citations` (URLs) and
+   `confidence`, for $0.012 total — comparable depth to Tavily's Research API, at a known flat
+   cost instead of an opaque range.
+3. Same call with `stream: true`: confirmed real SSE event types (`results`, `grounding`,
+   `done`) usable for the same real per-goal progress UI Tavily's streaming gave us.
+
+**Chose:** Replace Tavily with Exa entirely (`lib/research/exa.ts` + `exa-events.ts`,
+`tavily.ts` + `tavily-events.ts` deleted). Designed as a drop-in behind `runGoalResearch`'s
+existing contract (`(input, onEvent?) => Promise<{content: string, sources: RawSource[]}>`) —
+`pipeline.ts` only needed an import swap and one event-kind check changed
+(`streamEvent.kind === "results"` instead of Tavily's `tool_response`+`WebSearch` check).
+`synthesis.ts`, `SYNTHESIS_PROMPT_V1`, `buildSynthesisPrompt`, and the whole ref-constrained
+anti-hallucination citation mechanism (`buildSourcePool` + `buildSynthesisOutputSchema`'s
+enum-constrained refs) are completely unchanged — Exa's `content` is a formatted
+claim/evidence/citation-hint report fed into the exact same synthesis prompt shape a Tavily
+report used to fill; the model still only _outputs_ ref-constrained citations, never a raw URL.
+
+**Why:** Exa's `grounding.confidence` (extraction confidence) is a different thing from PRD's
+fact/evidence_backed_inference/inference/unknown/contradicted classification (§14-18) — that
+reasoning stays entirely in our own `SYNTHESIS_PROMPT_V1`, unaffected by this swap. The real
+win is cost transparency and depth: Exa returns an exact `costDollars` breakdown per call
+(unlike Tavily's opaque credit accounting), and page-content + structured grounding in one
+request means no separate content-fetch layer to build, unlike the Apify/SerpApi alternatives.
+
+**Bonus fix enabled by the swap:** `RawSource`/`PooledSource.publishedAt` was hardcoded to
+`null` always — Tavily never fed us a usable published date. Exa's `results[]` returns real
+ISO `publishedDate` when available; `RawSource` now carries it through, directly improving
+PRD §34 compliance (show a real date when available, honest "unavailable" otherwise, never
+inferred) at no extra cost.
+
+**Tradeoff:** Exa's `deep` + `outputSchema` mode is newer and less battle-tested in this
+codebase than Tavily's Research API was after a full phase of live testing — worth watching
+output quality across a few more real investigations before fully trusting it. `TAVILY_API_KEY`
+removed from `.env.example`/`CLAUDE.md`; the real key is left alone in `.env` (harmless if
+unused, Shiyaa's call whether to remove it or keep it in case of a rollback).
+
+## 2026-09-15 — Company Briefing was leaking near-verbatim JD language despite an explicit prompt rule against it
+
+**Context:** First real end-to-end run against a real JD (Taxfix "AI First Builder — Design")
+after the Exa swap. `SYNTHESIS_PROMPT_V1` already had an explicit rule that
+`idealFitSkills`/`roleHighlights` must not be extracted or paraphrased from the job
+description — Shiyaa reported the real output anyway read as JD paraphrase throughout most of
+both fields ("first principles," "operate in ambiguity," "AI, Figma, or code, whichever is
+fastest," "last 10%/polish," "small pods" — all lifted from the posting, reworded). Compared
+the actual output against the actual JD line by line to confirm this wasn't a false alarm: it
+wasn't — nearly every bullet in both fields had a direct JD counterpart. Notably, the
+`companyTags` field in the _same_ output did surface genuinely novel facts (real leadership
+names, a 2025 acquisition, an internal "AI Days" program) not present anywhere in the JD —
+proving the research pipeline itself found real, independent evidence; the model just didn't
+apply the same discipline to `idealFitSkills`/`roleHighlights` specifically.
+
+**Root cause, two contributing factors:** (1) a plain prohibition ("don't use the JD as a
+source") is weak against a model when the forbidden content is sitting right there in the same
+prompt — `buildSynthesisPrompt` embeds the full JD for role-relevance context, and
+`ministral-14b`/Groq's fallback model evidently defaulted to it under schema-completion
+pressure rather than working harder to synthesize from the raw research. (2) Exa's own web
+search for role/company/AI-related queries plausibly surfaces the _same job posting_ published
+elsewhere (a job board mirror, the company's own careers page) — even a real, correctly-cited
+source can functionally just be a re-publication of the JD.
+
+**Chose:** Two changes, one per contributing factor. In `SYNTHESIS_PROMPT_V1`: added a
+checkable test ("could a candidate have learned this from the job posting alone, even worded
+differently?"), a concrete BAD/GOOD contrastive example (the pattern that already fixed the
+evidence/sourceRefs conflation bug during the 3b→14b Mistral work), an explicit rule that a
+source which is itself a copy of the job posting can't support these two fields even when
+validly cited, and a preference for citing specific named facts (people, dates, programs,
+metrics) over restated traits/competencies, since named facts structurally can't come from
+generic JD language. In `buildGoalResearchInput` (not `RESEARCH_PROMPT_V1` itself — that block
+is PRD §64's verbatim-required text, left untouched): added source-type steering toward
+LinkedIn posts, company blog/engineering posts, news coverage, and leadership/hiring-team
+public posts, explicitly away from treating the company's own job listing for this exact role
+as a source of insight.
+
+**Why:** Attacking only the synthesis-prompt side wouldn't fix factor (2) — if Exa keeps
+finding the JD mirrored elsewhere, a smarter classification instruction doesn't help if the
+_research itself_ never surfaces anything beyond it. Attacking only the research-query side
+wouldn't fix factor (1) — even clean, diverse research can still get paraphrased into JD-shaped
+language by a model taking the path of least resistance. Both were needed.
+
+**Tradeoff:** Not yet re-verified live (would cost another real Exa + Mistral/Groq run) — this
+is a plausible, well-reasoned fix based on a real diagnosed failure, following the same
+prompt-strengthening pattern that worked before in this codebase, but "the prompt says not to"
+is inherently weaker than a structural guarantee (the way ref-constrained citations
+structurally prevent fabricated URLs). If a live retest still shows JD leakage, the next lever
+is a code-level filter — excluding known job-board/careers-page domains from the source pool
+used for `idealFitSkills`/`roleHighlights` specifically — not attempted here to avoid
+over-engineering ahead of confirming the prompt fix isn't already sufficient.

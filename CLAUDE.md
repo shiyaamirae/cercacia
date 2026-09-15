@@ -34,14 +34,20 @@ changes UX, research methodology, evidence behavior, cost, or scope).
 
 ## Tech Stack — Active Overrides
 
-Full stack: `PRD.md` §44, `ProjectInst.md` §7–10. Three active deviations (full rationale in
+Full stack: `PRD.md` §44, `ProjectInst.md` §7–10. Active deviations (full rationale in
 `DECISIONS.md`, not repeated here):
 
 - **Synthesis provider:** Mistral (primary) + Groq (fallback), not OpenAI, until deployment.
-  `OPENAI_API_KEY` not required this phase. Tavily unchanged. Evidence-quality rules
-  (fact/inference/no hallucination, `ProjectInst.md` §14–23) apply regardless of provider.
-  Switched from Gemini to Mistral 2026-09-15 after Gemini's free-tier quota (20 requests/day)
-  was exhausted mid-testing — see `DECISIONS.md`.
+  `OPENAI_API_KEY` not required this phase. Evidence-quality rules (fact/inference/no
+  hallucination, `ProjectInst.md` §14–23) apply regardless of provider. Switched from Gemini to
+  Mistral 2026-09-15 after Gemini's free-tier quota (20 requests/day) was exhausted
+  mid-testing — see `DECISIONS.md`.
+- **Research/evidence-gathering provider:** Exa, not Tavily. Switched 2026-09-15 after Tavily's
+  Research API turned out to have no per-call credit cap (a live run burned 464 credits in one
+  investigation). Exa's `/search` (`type: "deep"` + `outputSchema`) returns grounded
+  claim/evidence/citation output at a transparent, flat cost per call — see `DECISIONS.md` and
+  `apiread.md`. Our own Mistral/Groq synthesis step is unchanged: it still does the
+  fact/inference classification, Exa's grounding is a different, narrower kind of confidence.
 - **Motion for React:** added. Use for transitions that carry meaning (research progress,
   evidence appearing, tab/section changes, drawers) — not decoration. Don't ship default
   shadcn styling; build CercaCia's own visual language on top of its primitives.
@@ -65,7 +71,7 @@ See `PRD.md` §62 for the `src/` layout. Don't over-engineer beyond it.
 
 ## Environment Variables
 
-This phase: `TAVILY_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`. `OPENAI_API_KEY` not required
+This phase: `EXA_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`. `OPENAI_API_KEY` not required
 yet. Server-side only, never `NEXT_PUBLIC_*`. Full rules: `ProjectInst.md` §11, §39. Keep
 `.env.example` (dummy values) in sync with `.env`.
 
@@ -74,7 +80,7 @@ yet. Server-side only, never `NEXT_PUBLIC_*`. Full rules: `ProjectInst.md` §11,
 Build/lint/type/runtime failure: read the actual error, fix, retest immediately without asking
 permission, repeat autonomously up to ~3–4 attempts. Still failing → stop and report what was
 tried and what's blocking. One summary at the end, not a turn-by-turn narration. Exception:
-don't blindly retry against live Tavily/Mistral/Groq calls — check with Shiyaa before burning
+don't blindly retry against live Exa/Mistral/Groq calls — check with Shiyaa before burning
 credits (mock data is fine for UI iteration, `ProjectInst.md` §41).
 
 ## Reference

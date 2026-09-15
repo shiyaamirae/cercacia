@@ -67,6 +67,13 @@ export function buildGoalResearchInput(
     "",
     `Investigate: ${goalInstruction}`,
     "",
+    "Prioritize sources that add signal beyond the job posting itself: LinkedIn posts, " +
+      "company blog/engineering posts, news coverage, interviews or public posts from the " +
+      "CEO/leadership/hiring team, and posts about team growth or hiring plans. Avoid " +
+      "treating this company's own job listing for this role (or a mirror of it on a job " +
+      "board) as a source of insight about what the company values — it's already given to " +
+      "you above; the point of researching is to find what it doesn't say.",
+    "",
     `Freshness: ${freshnessOption?.label ?? brief.freshness}` +
       (freshnessOption?.description
         ? ` — ${freshnessOption.description}`
@@ -126,6 +133,23 @@ Rules:
     this role, each with a one-line "why it matters to this role." Must come from researched
     evidence — never copied or paraphrased from the job description, never a false or invented
     claim.
+  - Before including any idealFitSkills or roleHighlights item, apply this test: "could a
+    candidate have learned this from reading the job posting alone, even if worded
+    differently?" If yes, it does not belong here — these fields exist specifically to add
+    what the job posting does NOT already tell the candidate, not to restate it. This applies
+    even when a discovered source is itself a copy of the job posting (e.g. a mirror on a job
+    board or the company's own careers page) — that source can support ordinary findings, but
+    never idealFitSkills or roleHighlights.
+    Example — a job posting says "you'll work in small, focused pods with high ownership":
+    - BAD (job-posting paraphrase, do not do this): "Comfortable working in small,
+      autonomous teams with end-to-end ownership."
+    - GOOD (adds something the posting didn't say): "The company restructured its product
+      org into small cross-functional pods in 2025, replacing its former stage-gated review
+      process — candidates who've resisted process-heavy environments before are likely to
+      fit better than those who thrive on structure."
+    Prefer citing a specific, named fact (a person, a date, a program name, a metric, an
+    event) over restating a trait or competency in different words — named facts can't have
+    come from generic job-posting language, restated traits often can.
   - Every companyTags/idealFitSkills/roleHighlights item must carry at least one real
     sourceRef from the pool. If nothing in the pool supports an item, leave it out rather than
     include it unsupported.`;
