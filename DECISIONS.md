@@ -17,3 +17,39 @@ rate-limited. Tavily is unchanged as the research/search layer.
 
 **Tradeoff:** Two provider integrations to maintain (Gemini + Groq) instead of one. Whether to
 revert to OpenAI at deployment, or stay on Gemini/Groq, is still open.
+
+## 2026-09-15 — Motion for React added for UI animation
+
+**Context:** The base frontend stack (Next.js, Tailwind, shadcn/ui, Lucide) has no animation
+primitive. The research-in-progress experience (sources discovered → evidence extracted →
+signals emerging) needs to feel alive without resorting to fake "AI agent thinking" theater.
+
+**Options:** CSS transitions only / Motion for React / another animation library (React
+Spring, GSAP).
+
+**Chose:** Motion for React (the current name for what was Framer Motion).
+
+**Why:** First-class React API, handles layout animations and gesture/hover/press interactions
+with little code, pairs well with shadcn/ui's component model.
+
+**Tradeoff:** One more dependency to maintain; animation needs restraint so it supports
+comprehension (evidence-over-eloquence) rather than becoming decorative.
+
+## 2026-09-15 — Zustand and React Hook Form adopted from the start
+
+**Context:** The original plan called for plain React state, adding a state library only once
+complexity demonstrably required it, to keep the two-day build simple.
+
+**Options:** Plain React state / context (as originally planned) / Zustand from day one /
+another state library (Jotai, Redux Toolkit).
+
+**Chose:** Zustand for cross-component app state (active investigation, findings, research
+progress, follow-up conversation); React Hook Form + Zod for form state/validation (setup
+form, follow-up input) — sharing Zod schemas with the data-validation layer where the shapes
+match.
+
+**Why:** Decided upfront rather than waiting for complexity to force the issue.
+
+**Tradeoff:** Two more dependencies than the minimal-first plan called for; the discipline of
+"start plain, add only when justified" is traded for architectural consistency decided
+up front.
