@@ -1,0 +1,163 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { MotionConfig, motion } from "motion/react";
+import { KeySignalCard } from "@/components/investigation/key-signal-card";
+import { useInvestigationStore } from "@/lib/store/investigation-store";
+import { selectKeySignals } from "@/lib/research/key-signals";
+
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
+const reveal = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.38, ease: easeOut, delay: i * 0.06 },
+  }),
+};
+
+const closedDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+export default function InvestigationResultsPage() {
+  const router = useRouter();
+  const setup = useInvestigationStore((state) => state.setup);
+  const result = useInvestigationStore((state) => state.result);
+
+  useEffect(() => {
+    if (!setup || !result) {
+      router.replace("/investigate");
+    }
+  }, [setup, result, router]);
+
+  if (!setup || !result) return null;
+
+  const sourceCount = new Set(
+    result.findings.flatMap((finding) =>
+      finding.sources.map((source) => source.url)
+    )
+  ).size;
+  const highConfidenceCount = result.findings.filter(
+    (finding) => finding.confidence === "high"
+  ).length;
+  const keySignals = selectKeySignals(result.findings);
+
+  return (
+    <MotionConfig reducedMotion="user">
+      <main className="mx-auto w-full max-w-3xl px-6 py-14 sm:px-10">
+        <motion.p
+          custom={0}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+        >
+          Case file
+        </motion.p>
+
+        <motion.div
+          custom={1}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+        >
+          <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
+            {setup.company}
+          </h1>
+          <p className="mt-1 text-lg text-muted-foreground">{setup.role}</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Investigation closed · {closedDateFormatter.format(new Date())}
+          </p>
+        </motion.div>
+
+        <motion.dl
+          custom={2}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-5 sm:grid-cols-4"
+        >
+          {[
+            ["Sources", sourceCount],
+            ["Findings", result.findings.length],
+            ["High-confidence", highConfidenceCount],
+            ["Open questions", result.openQuestions.length],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {label}
+              </dt>
+              <dd className="font-display text-2xl">{value}</dd>
+            </div>
+          ))}
+        </motion.dl>
+
+        <motion.section
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          className="mt-8"
+        >
+          <h2 className="font-display mb-3 text-xl">
+            What matters most before you apply
+          </h2>
+          <p className="leading-relaxed text-foreground">
+            {result.executiveSignal}
+          </p>
+        </motion.section>
+
+        {keySignals.length > 0 && (
+          <motion.section
+            custom={4}
+            initial="hidden"
+            animate="visible"
+            variants={reveal}
+            className="mt-10"
+          >
+            <h2 className="font-display mb-4 text-xl">Key signals</h2>
+            <div className="flex flex-col gap-4">
+              {keySignals.map((finding) => (
+                <KeySignalCard key={finding.id} finding={finding} />
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+        <motion.section
+          custom={5}
+          initial="hidden"
+          animate="visible"
+          variants={reveal}
+          className="mt-10"
+        >
+          <h2 className="font-display text-xl">Open questions</h2>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            What the evidence didn&rsquo;t settle.
+          </p>
+          {result.openQuestions.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {result.openQuestions.map((question) => (
+                <li
+                  key={question}
+                  className="rounded-lg border border-border bg-card px-4 py-3 text-sm"
+                >
+                  {question}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No open questions were left on this case.
+            </p>
+          )}
+        </motion.section>
+      </main>
+    </MotionConfig>
+  );
+}
