@@ -23,3 +23,7 @@ build/
 *.log
 npm-debug.log*
 .vercel
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+coverage/
