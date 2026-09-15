@@ -613,3 +613,41 @@ real end-to-end questions only a live run can answer.
 good — merged (PR #15) on that basis. Not yet exercised across multiple companies/roles, so
 the length cap and Structure's expected-thin behavior are confirmed working at least once, not
 exhaustively.
+
+## 2026-09-15 — Correction: the doc-only CI skip never actually worked
+
+**Context:** The "CI skips `verify` for doc-only changes" entry above (and every session-log
+note since) claimed the doc-only skip path was implemented and just "not yet confirmed live."
+The first genuinely doc-only PR to actually run against it (#16, a one-line `DECISIONS.md`
+edit) ran the full `verify` job anyway — checked out, `npm ci`, lint, typecheck, test, build,
+all of it, when it should have been skipped.
+
+**Root cause, confirmed via the real Actions log (not guessed):** `dorny/paths-filter`'s
+`changes` job reported `Filter code = true` with `DECISIONS.md` listed as a "matching file" —
+i.e., the exclusion never applied. `dorny/paths-filter`'s pattern-list matching defaults to
+`predicate-quantifier: 'some'` — a file is included if it matches **any** pattern in the list,
+OR'd together. The filter was written as `['**', '!**/*.md']` assuming "everything, then
+subtract markdown" (`.gitignore`-style semantics) — but under "some," `'**'` alone already
+matches every file unconditionally, so the list is true regardless of the second pattern. The
+negation was never doing anything. This bug existed from the moment the filter was written;
+every prior PR happened to also touch non-`.md` files, so `verify` correctly running looked
+like the feature working, when it was actually just always running regardless of the filter.
+
+**Chose:** Added `predicate-quantifier: 'some-with-excludes'` to the `dorny/paths-filter` step
+— confirmed via the library's own README (fetched directly, not assumed) that this mode makes
+negated patterns in the list act as actual exclusions rather than independent OR branches.
+
+**Why:** This is the officially documented fix for exactly this pattern (a catch-all plus a
+negation, wanting AND-then-subtract semantics) — `every` was the other documented option but
+`some-with-excludes` is the closer semantic match to what the filter was already trying to
+express.
+
+**Tradeoff:** None technically, but a real process lesson: "confirmed live" claims in this
+codebase's docs need an actual triggering event, not just successful runs of a _different_
+path. The original entry's "not yet confirmed live" caveat on the skip path specifically was
+doing real work — it was correct to keep flagging this as unverified across multiple sessions
+rather than assuming it worked. Nobody had gone back and deliberately constructed a genuinely
+doc-only PR to actually trigger that path, though — this one surfaced the bug only by
+accident, on a routine session-handoff commit. Worth re-verifying live once more after this
+fix: PR #16 itself was already open before this fix landed, so it needs to re-run against the
+corrected workflow, not just get merged on faith that the fix is right.

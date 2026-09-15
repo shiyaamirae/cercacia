@@ -15,9 +15,16 @@ jobs:
         with:
           fetch-depth: 2
 
+      # predicate-quantifier: without this, paths-filter's default "some" mode
+      # OR's the pattern list together — '**' alone matches every file, so the
+      # '!**/*.md' exclusion below is silently ignored and `code` is always
+      # true. 'some-with-excludes' makes negated patterns actually exclude.
+      # Confirmed live: a real doc-only PR (#16) ran the full verify job
+      # anyway before this fix was added.
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          predicate-quantifier: 'some-with-excludes'
           filters: |
             code:
               - '**'
