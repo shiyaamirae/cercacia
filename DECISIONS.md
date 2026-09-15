@@ -69,3 +69,29 @@ anyone copy, modify, or sell derivatives, which isn't desired while that's still
 
 **Tradeoff:** Less conventional for a portfolio repo (no badge-friendly open license), and
 anyone wanting to build on it legitimately would need to ask first.
+
+## 2026-09-15 — Landing page design system via the Hallmark skill
+
+**Context:** PRD.md §51-52 specifies an "editorial, calm, case-file" visual direction and
+explicitly bans the generic-AI-chatbot / neon-dashboard / default-shadcn look. Needed a
+concrete typography, color, and layout system for the actual landing page, not just a
+principle to keep in mind.
+
+**Options:** Hand-pick fonts/colors/layout ad hoc / install and follow the `hallmark` design
+skill (nutlope/hallmark, MIT, built specifically to stop AI-generated UI from defaulting to
+generic patterns).
+
+**Chose:** Installed Hallmark, followed its documented process by hand (its own runtime skill
+registration didn't pick up mid-session): editorial genre, Specimen macrostructure (adapted —
+content is one block, no left-margin numbered column), custom warm-ochre OKLCH palette, N9
+edge-aligned-minimal nav, Ft2 inline-single-line footer, C3 typographic-link CTA (no filled
+button). Kept the existing Geist body font (pre-flight-preserved per Hallmark's own rule
+against stomping an established stack) and added Fraunces as the display face.
+
+**Why:** A documented, checkable process (58 anti-slop gates) beats ad hoc taste calls, and its
+"editorial" genre defaults are close to word-for-word what PRD.md already specified.
+
+**Tradeoff:** Specimen is explicitly "no longer a default" in Hallmark's own rules — reaching
+for it is justified here because the brief is genuinely, explicitly editorial, but it needs to
+not become the reflexive choice for every future screen (tracked in `.hallmark/log.json`,
+gitignored, for diversification on the next build).

@@ -27,3 +27,9 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 coverage/
+
+# Hallmark design skill — locally-installed tool + its project memory, not source
+.agents/
+.claude/skills/
+.hallmark/
+skills-lock.json
