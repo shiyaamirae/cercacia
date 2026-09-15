@@ -262,3 +262,36 @@ tradeoff.
 **Tradeoff:** 30 req/min instead of 3b's 750 — still far more than this pipeline's one-call
 -per-investigation pattern needs, but worth knowing if investigation volume ever scales up
 significantly before a further model/tier decision.
+
+## 2026-09-15 — CI skips `verify` for doc-only changes, without `paths-ignore`
+
+**Context:** Shiyaa asked not to run the full lint/typecheck/test/build pipeline for
+documentation-only commits — they don't touch anything those checks would catch. The obvious
+fix, `paths-ignore: ['**/*.md']` on the workflow's `on:` trigger, has a real gotcha: `main`'s
+branch ruleset requires a status check with context `"verify"` (confirmed via
+`gh api repos/.../rulesets/23427935`). If the workflow never triggers for a doc-only commit,
+that commit never gets a `"verify"` report at all, and GitHub's required-status-check leaves the
+PR stuck on "Expected — waiting for status" indefinitely — not a check that reports skipped, a
+check that never shows up.
+
+**Options:** `paths-ignore` at the trigger level (breaks required-status-checks, as above) /
+leave CI as-is, always running full checks / keep the workflow triggering every time, but make
+the `verify` job itself conditionally skip its work when the diff is doc-only.
+
+**Chose:** The third option. Added a cheap `changes` job (using `dorny/paths-filter`, a
+well-established action for this exact purpose rather than hand-rolled `git diff` parsing) that
+outputs whether any non-`.md` file changed; `verify` now has `needs: changes` and
+`if: needs.changes.outputs.code == 'true'`. The workflow still triggers on every push/PR, so
+`main`'s ruleset always gets a report for the `"verify"` context — it's just reported as
+**skipped** (which satisfies a required check) rather than run, when nothing but docs changed.
+
+**Why:** This is the standard, documented pattern for conditionally-required GitHub Actions
+checks. Confirmed live: a PR touching only `.github/workflows/ci.yml` (non-`.md`) correctly
+triggered and passed the full `verify` job — the "normal" path is proven. The doc-only skip
+path will get its first real-world exercise on the next genuine doc-only PR once this merges.
+
+**Tradeoff:** One more job in the workflow file, and a dependency on `dorny/paths-filter` (a
+GitHub Action, not an npm package — outside the app's own dependency policy, but still a
+third-party action to trust). If this pattern is ever "simplified" back to a plain
+`paths-ignore`, branch protection breaks silently for the next doc-only PR — worth remembering
+before touching this file again.

@@ -6,7 +6,30 @@ on:
     branches: [main]
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+
+  # Workflow still triggers on every push/PR — only the job is skipped for
+  # doc-only changes. A skipped required job satisfies a required status
+  # check; a workflow that never triggers (paths-ignore) does not, and would
+  # leave the PR permanently stuck on "Expected — waiting for status".
   verify:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
