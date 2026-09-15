@@ -37,3 +37,7 @@ skills-lock.json
 
 # Development fixtures (PRD §60) — real third-party content (e.g. an actual JD), not ours to publish
 fixtures/
+
+# Design reference mockups (AI-generated concept HTML, Google-hosted image URLs) — local
+# reference only, not source we ship
+design ref/
