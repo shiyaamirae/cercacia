@@ -7,6 +7,7 @@ import { CompanyBriefingSection } from "@/components/investigation/company-brief
 import { KeySignalCard } from "@/components/investigation/key-signal-card";
 import { useInvestigationStore } from "@/lib/store/investigation-store";
 import { selectKeySignals } from "@/lib/research/key-signals";
+import { investigationResultSchema } from "@/lib/schemas/evidence";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -28,7 +29,14 @@ const closedDateFormatter = new Intl.DateTimeFormat("en-GB", {
 export default function InvestigationResultsPage() {
   const router = useRouter();
   const setup = useInvestigationStore((state) => state.setup);
-  const result = useInvestigationStore((state) => state.result);
+  const rawResult = useInvestigationStore((state) => state.result);
+  // Guards against a result persisted by an older app version (localStorage
+  // survives across deploys/hot-reloads) whose shape no longer matches —
+  // e.g. missing a field added since, like companyBriefing.
+  const parsedResult = rawResult
+    ? investigationResultSchema.safeParse(rawResult)
+    : null;
+  const result = parsedResult?.success ? parsedResult.data : null;
 
   useEffect(() => {
     if (!setup || !result) {
