@@ -1,22 +1,18 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S4 R5 V5
- * genre: editorial · macrostructure: Specimen (adapted — no left-margin number/column,
- * content is a single block) · theme: custom warm-ochre (anchor hue ~48-70, oklch) ·
- * enrichment: none (typography only) · nav: N9 edge-aligned minimal ·
- * footer: Ft2 inline single line · CTA: C3 typographic link
- * contrast: pass (40-41) · nav/footer/hero: pass (42-45) · honest: pass (46) ·
- * chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · mobile: pass (34, 50-57) */
+/* "Case file" noir design system — Shiyaa's Figma redesign, 2026-09-15. Supersedes the prior
+ * warm-ochre editorial system (see CLAUDE.md's "Visual Direction — Active Override" and
+ * DECISIONS.md). Material Design 3–style semantic roles: dark surfaces, red primary, amber
+ * secondary, a manila-paper tertiary reserved for the dossier surface only. No light/dark
+ * toggle exists in this app — this is the only palette, not a `.dark` variant. */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-hanken-grotesk);
+  --font-mono: var(--font-space-mono);
+  --font-display: var(--font-space-grotesk);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,6 +42,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Dossier — the one light "paper" surface, used only for the manila briefing panel */
+  --color-dossier: var(--dossier);
+  --color-dossier-foreground: var(--dossier-foreground);
+  --color-dossier-muted-foreground: var(--dossier-muted-foreground);
+  --color-dossier-border: var(--dossier-border);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -56,73 +57,42 @@
 }
 
 :root {
-  /* Warm ochre anchor (hue ~55-70) — case-file paper, never pure black/white */
-  --background: oklch(97% 0.012 70);
-  --foreground: oklch(20% 0.014 55);
-  --card: oklch(98% 0.008 70);
-  --card-foreground: oklch(20% 0.014 55);
-  --popover: oklch(98% 0.008 70);
-  --popover-foreground: oklch(20% 0.014 55);
-  --primary: oklch(48% 0.15 48);
-  --primary-foreground: oklch(98% 0.01 70);
-  --secondary: oklch(93% 0.01 70);
-  --secondary-foreground: oklch(25% 0.012 55);
-  --muted: oklch(94% 0.01 70);
-  --muted-foreground: oklch(46% 0.012 60);
-  --accent: oklch(93% 0.01 70);
-  --accent-foreground: oklch(25% 0.012 55);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(85% 0.01 70);
-  --input: oklch(85% 0.01 70);
-  --ring: oklch(50% 0.16 48);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.375rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(16% 0.014 55);
-  --foreground: oklch(94% 0.012 70);
-  --card: oklch(19% 0.014 55);
-  --card-foreground: oklch(94% 0.012 70);
-  --popover: oklch(19% 0.014 55);
-  --popover-foreground: oklch(94% 0.012 70);
-  --primary: oklch(68% 0.15 52);
-  --primary-foreground: oklch(16% 0.014 55);
-  --secondary: oklch(24% 0.012 55);
-  --secondary-foreground: oklch(94% 0.012 70);
-  --muted: oklch(24% 0.012 55);
-  --muted-foreground: oklch(68% 0.01 65);
-  --accent: oklch(24% 0.012 55);
-  --accent-foreground: oklch(94% 0.012 70);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(94% 0.012 70 / 12%);
-  --input: oklch(94% 0.012 70 / 15%);
-  --ring: oklch(68% 0.15 52);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #101418;
+  --foreground: #e1e2e9;
+  --card: #191c21;
+  --card-foreground: #e1e2e9;
+  --popover: #191c21;
+  --popover-foreground: #e1e2e9;
+  --primary: #d9383a;
+  --primary-foreground: #fffdff;
+  --secondary: #cb8020;
+  --secondary-foreground: #201b10;
+  --muted: #272a2f;
+  --muted-foreground: #d0c5b4;
+  --accent: #32353a;
+  --accent-foreground: #e1e2e9;
+  --destructive: #93000a;
+  --border: #5b403e;
+  --input: #0b0e13;
+  --ring: #d9383a;
+  --chart-1: #d9383a;
+  --chart-2: #ffb86b;
+  --chart-3: #d0c5b4;
+  --chart-4: #7c7465;
+  --chart-5: #32353a;
+  --radius: 0.25rem;
+  --sidebar: #0b0e13;
+  --sidebar-foreground: #e1e2e9;
+  --sidebar-primary: #d9383a;
+  --sidebar-primary-foreground: #fffdff;
+  --sidebar-accent: #1d2025;
+  --sidebar-accent-foreground: #e1e2e9;
+  --sidebar-border: #32353a;
+  --sidebar-ring: #d9383a;
+  --dossier: #ece1cf;
+  --dossier-foreground: #201b10;
+  --dossier-muted-foreground: #4d4639;
+  --dossier-border: #d0c5b4;
 }
 
 @layer base {

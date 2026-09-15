@@ -658,3 +658,66 @@ skip path specifically was doing real work — correct to keep flagging it as un
 multiple sessions rather than assuming it worked. This bug surfaced only by accident, on a
 routine session-handoff commit that happened to be genuinely doc-only. Re-verified live after
 the `every` fix — see the session log for the actual passing run.
+
+## 2026-09-15 — Full visual reskin: PRD §52 superseded by Shiyaa's Figma "case file" design
+
+**Context:** `PRD.md` §52 (Visual Direction) specified editorial/calm/restrained-color, and
+explicitly ruled out "cyberpunk agent command center" and "gimmicky CercaCia graphics." That
+section was cited earlier this session as the reason the "detective tone" work stayed
+copy-only, no new visual motifs. Shiyaa then shared a Figma design for the results dashboard —
+dark near-black surfaces, neon-red accents, a manila-folder "dossier" card with an angled
+rubber stamp and paperclip, a polaroid "evidence artifact" photo, a "closed investigations"
+vault — and asked for the whole site to match it.
+
+**Chose:** Full pivot, all screens (landing/setup/progress/results), not just the one designed
+screen. Extracted the real design tokens via the Figma MCP's `get_design_context` (not
+eyeballed from the screenshot) — confirmed by two further reference mockups Shiyaa shared
+(`design ref/ref1`, `ref2`, both real working Tailwind/HTML with an identical Material Design
+3–style token config) that this is one deliberate, consistent system, not a one-off screen.
+Token system: dark surfaces (`background`/`surface` `#101418`, `surface-container-low`
+`#191c21`, etc.), red `primary-container` (`#d9383a`), amber `secondary`
+(`#ffb86b`/`#cb8020`), a manila-paper `tertiary-fixed` family (`#ece1cf`/`#f3ece0`/`#e4d9c7`)
+used only for the dossier surface. Fonts: Space Grotesk (display), Space Mono (labels/chrome),
+Hanken Grotesk (body copy inside cards) — replacing Fraunces/Geist/Geist Mono.
+
+**Why:** Shiyaa's own aesthetic call — "i want our site to be exactly same like how i
+designed" — not elaborated beyond that; not framed as a response to a problem with the prior
+editorial system, a deliberate product/brand decision. See `SHIYAA-LOG.md` for the exact
+quotes and the decision-log entry.
+
+**Scope boundaries, explicitly drawn during planning (not silently expanded, ProjectInst §32):**
+
+1. The Figma design's fabricated "Evidence Artifact" polaroid (invented geo-recon photo,
+   camera-feed ID, lat/long) — dropped for the same reason Tavily's uncapped costs and the
+   JD-paraphrase bug got caught earlier: it looks like evidence but isn't grounded in anything
+   the app actually retrieved. Replaced with a real calendar card (job-posted date + active/
+   reposted duration), sourced from genuine research (see the companion "Job-posted research"
+   entry once that phase lands), not decoration.
+2. The "Closed Investigations" vault (multi-investigation history) is real, intended
+   functionality — deliberately last in build order per Shiyaa, not bundled into this reskin.
+3. Two further Figma-adjacent references Shiyaa shared (`ref1`: an "evidence wall" corkboard
+   with yarn-connected pinned photos; `ref2`: a 3-step setup wizard with compensation/culture
+   "ambition vectors" and a multi-company match radar) are treated as **component-pattern and
+   token references only** — Shiyaa: "i dont want to use the copy as such but we can tailor
+   them to our other tabs." The literal new functionality they depict (multi-company matching,
+   candidate preference/dealbreaker profiling) is explicitly not being built; that would be new
+   product scope, not a restyle, and nobody asked for it as a feature.
+4. Both new header buttons in the Figma design ("Export Briefing (PDF)" and a profile/avatar
+   icon) ship as visual-only stubs, not wired to real PDF export or accounts — PDF export isn't
+   in any `ROADMAP.md` phase, and accounts are explicitly flagged in ProjectInst §36 as a
+   post-V1 reason to add Supabase.
+5. Decorative footer stats in the Figma design ("estimated compilation time," "zero footprint
+   audit active") don't correspond to anything the app computes — proposed to drop both rather
+   than ship invented numbers (the `sourceCount` stat in the same row is real and kept).
+
+**Impact:** `PRD.md` §52 is left as historical record, not edited — this repo's established
+pattern for provider/architecture overrides (see the Gemini→Mistral and Tavily→Exa entries
+above) is to override in `CLAUDE.md` + here, not rewrite the original spec. Implementation
+phased into separate PRs (design-token foundation first, since every other screen depends on
+it; then the results dashboard; then setup/progress/landing) rather than one large diff, same
+discipline as every other feature this session.
+
+**Tradeoff:** Not yet live-verified — this entry records the decision and scope boundaries
+going in; each phase gets its own build/lint/typecheck/test pass plus a `npm run dev` visual
+check, same as every UI change this session, but the overall look has not been reviewed live
+by Shiyaa yet since it spans multiple PRs.

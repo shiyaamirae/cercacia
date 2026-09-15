@@ -56,6 +56,17 @@ Full stack: `PRD.md` §44, `ProjectInst.md` §7–10. Active deviations (full ra
 - **Zustand:** added, overrides `ProjectInst.md` §35. Cross-component investigation state
   (active investigation, findings, progress, follow-up). Form-local state stays in RHF.
 
+## Visual Direction — Active Override
+
+`PRD.md` §52 (editorial, calm, restrained color, explicitly _not_ "cyberpunk agent command
+center" or "gimmicky graphics") is **superseded**. Shiyaa designed a dark "case file" noir
+system in Figma 2026-09-15 and directed a full site reskin to match it — full rationale in
+`DECISIONS.md`, product-override reasoning in `SHIYAA-LOG.md`. Fonts: Space Grotesk (display),
+Space Mono (labels/UI chrome), Hanken Grotesk (body copy in cards) — replaces Fraunces/Geist.
+Palette: Material Design 3–style dark surfaces (`#101418` base) + red primary (`#d9383a`) +
+amber secondary (`#ffb86b`) + manila-paper tertiary (`#ece1cf`, used only for the dossier/
+"paper" surface, not globally). `PRD.md` §52's text is left as historical record, not edited.
+
 ## Commands
 
 ```
