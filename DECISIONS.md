@@ -417,3 +417,36 @@ wiring into the pipeline).
 manually) no longer cancels anything client-side either — but it never actually stopped the
 server-side pipeline before now, so this gives up nothing that was real. `key={attempt}` on
 `InvestigationRun` still resets the ref on retry, so each retry still fires exactly once.
+
+## 2026-09-15 — Hard cap of 5 investigation goals per investigation
+
+**Context:** A live test run consumed 464 Tavily credits in one investigation. Checked
+Tavily's Research API docs directly: the only cost lever is `model` (`mini` vs `pro`, already
+on `mini`), and `mini` itself costs a dynamic **4-110 credits per call** — "how much internal
+research the agent does," with no documented max-results/search-depth/budget parameter to
+bound it further. Since one Research call runs per selected goal, concurrently (§38), total
+spend per investigation scales with goal count, and that's the only lever actually available
+to us.
+
+**Options:** No cap, just a cost hint next to the goal picker (soft guidance, no enforcement) /
+hard cap on how many goals can be selected at once / switch goal research from concurrent to
+sequential with a running-total early-stop (requires Tavily to report per-call credit usage in
+the response, which isn't confirmed to exist, and would sacrifice the concurrent-research
+architecture already decided for real per-goal progress).
+
+**Chose:** A hard cap of 5 goals per investigation (`MAX_INVESTIGATION_GOALS` in
+`lib/investigation-goals.ts`), enforced in `investigationSetupSchema` (server-trusted) and
+mirrored in the setup UI (disables further goal checkboxes once 5 are selected, rather than
+only surfacing a validation error after submit).
+
+**Why:** Confirmed with Shiyaa directly (a cost decision, not something to guess at) — a hard
+cap over a soft warning, since a soft warning still lets one investigation blow through most of
+a monthly credit budget. 5 was chosen as worst case (5 × mini's 110-credit ceiling = 550
+credits) leaves headroom for more than one investigation per 1,000-credit month even at the
+worst case, while matching the "top 5" framing already used elsewhere in the product (company
+tags, role highlights).
+
+**Tradeoff:** A candidate who wants to investigate more than 5 areas at once can't — they'd
+need to run a follow-up investigation or accept narrower initial scope. Revisit the number if
+Tavily's actual per-call cost in practice sits meaningfully below the 110-credit ceiling once
+more real usage data exists.

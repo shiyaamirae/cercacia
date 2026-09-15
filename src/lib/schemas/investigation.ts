@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_INVESTIGATION_GOALS } from "@/lib/investigation-goals";
 
 export const investigationAreaSchema = z.enum([
   "company",
@@ -31,7 +32,11 @@ export const investigationSetupSchema = z
       .max(20_000, "That job description is too long — please trim it."),
     goals: z
       .array(investigationAreaSchema)
-      .min(1, "Pick at least one investigation goal."),
+      .min(1, "Pick at least one investigation goal.")
+      .max(
+        MAX_INVESTIGATION_GOALS,
+        `Pick up to ${MAX_INVESTIGATION_GOALS} investigation goals — each one runs its own research call.`
+      ),
     customQuestion: z.string().trim().max(1_000).optional(),
     freshness: freshnessSchema.default("6_months"),
   })
