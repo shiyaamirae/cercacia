@@ -26,6 +26,38 @@ confirmation. This file is assignment evidence of Shiyaa's own product judgment,
 recorded reasoning must be Shiyaa's, not a restatement of your original rationale. It's
 gitignored — a personal reference, not part of the public repo.
 
+## Engineering Standards (dev.md)
+
+`dev.md` holds portable engineering rules — structure, naming, dead-code policy, types, error
+handling, security, git/commit conventions, testing, documentation, and a Definition of Done —
+that apply regardless of stack. Read it alongside this file at the start of every session.
+**Per dev.md's own rule, this file wins on conflict** — none currently known.
+
+Concretely, for this repo:
+
+- **Branching:** one branch per unit of work (`feat/...`, `fix/...`, `refactor/...`,
+  `docs/...`), never commit directly to `main`.
+- **Commits:** Conventional Commits, present-tense imperative, one logical change per commit,
+  every commit builds and lints clean.
+- **PRs:** every change goes through a PR filled out from `pull_request_template.md` for real
+  (actual verification steps, actual out-of-scope notes). **Open the PR, but don't merge
+  without Shiyaa's go-ahead** — the repo is public and PRs double as the paper trail.
+- **No broken links:** before committing, verify internal doc cross-references (e.g.
+  `PRD.md §62`) and any external links actually resolve.
+- **Definition of Done** (dev.md §12, mirrored in the PR template) gets checked before every
+  commit, not just before a PR: strict types/no new `any`, lint+format clean, tests pass,
+  build succeeds, no dead code/`console.log`/secrets, loading/error/empty states handled,
+  touched files under the line limits, `DECISIONS.md` updated for non-obvious choices.
+
+**Public vs. private docs, reconciled:** dev.md expects `README.md`, `DECISIONS.md`,
+`.env.example`, `dev.md`, and `pull_request_template.md` to live at repo root and be
+committed — that widens "only CLAUDE.md is public" from before. Adopted as: those five join
+`CLAUDE.md` as tracked/public. `PRD.md`, `ProjectInst.md`, `SHIYAA-LOG.md`, `context.md`, and
+`ROADMAP.md` stay gitignored/private — they're the AI-collaboration planning layer, not
+engineering-practice artifacts. `DECISIONS.md` and `SHIYAA-LOG.md` can cover the same event
+from different angles: `DECISIONS.md` is the neutral public record of *why* something was
+built a certain way; `SHIYAA-LOG.md` is the private record of *when Shiyaa overrode the AI*.
+
 ## Workflow
 
 Follow `ProjectInst.md` §43 (Inspect → Understand → Plan → Implement → Run checks → Review →
@@ -35,8 +67,30 @@ behavior, cost, or scope).
 
 ## Tech Stack
 
-Next.js App Router, TypeScript, Tailwind, shadcn/ui, Zod, Tavily Research API, OpenAI Responses
-API, localStorage, Vercel. Full rationale and constraints: `PRD.md` §44, `ProjectInst.md` §7–10.
+Next.js App Router, TypeScript, Tailwind, shadcn/ui, Zod, Tavily Research API, localStorage,
+Vercel. Full rationale and constraints: `PRD.md` §44, `ProjectInst.md` §7–10 — **except the AI
+reasoning/synthesis provider, which is overridden below.**
+
+## Active AI Provider Override (Testing Phase — until deployment)
+
+`PRD.md` and `ProjectInst.md` specify OpenAI's Responses API for structured
+extraction/synthesis/evidence classification/contradiction detection/follow-up reasoning. **That
+is superseded for now.** Until deployment:
+
+- **Tavily** — research/search layer. Unchanged.
+- **Gemini** — primary reasoning/synthesis engine. Everywhere the docs say "OpenAI Responses
+  API" for synthesis, read "Gemini" instead.
+- **Groq** — fallback if Gemini fails or is rate-limited.
+- **OpenAI is not used in this phase.** Don't require `OPENAI_API_KEY` to be set.
+
+All other rules around synthesis are unchanged regardless of provider: structured output only
+(no free-form string parsing for critical data), Zod validation before anything enters app
+state, retry once on invalid structure then fail gracefully (`ProjectInst.md` §22), fact vs.
+inference discipline (§14, §23), no hallucinated sources (§16). This override changes *which
+model* does the reasoning, not the evidence-quality bar.
+
+Reasoning and full context: `SHIYAA-LOG.md` (2026-09-15 entry). Whether this reverts to OpenAI
+at deployment or stays on Gemini/Groq is undecided — don't assume either way without asking.
 
 ## Commands
 
@@ -59,9 +113,11 @@ See `PRD.md` §62 for the suggested `src/` layout (`app/`, `components/investiga
 
 ## Environment Variables
 
-`TAVILY_API_KEY` and `OPENAI_API_KEY` are server-side only — never `NEXT_PUBLIC_*`, never
-committed, never logged. Full rules: `ProjectInst.md` §11, §39; variable list: `PRD.md` §61.
-Verify `.env` is in `.gitignore` before any commit.
+Required for this phase: `TAVILY_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY` (fallback).
+`OPENAI_API_KEY` is not required until deployment (see the provider override above). All keys
+are server-side only — never `NEXT_PUBLIC_*`, never committed, never logged. Full rules:
+`ProjectInst.md` §11, §39. Verify `.env` is in `.gitignore` before any commit. Keep
+`.env.example` (committed, dummy values only) in sync whenever a new variable is added.
 
 ## Self-Debugging Loop
 
@@ -77,17 +133,24 @@ When a local dev run, `npm run build`, lint, or type check fails:
 6. Give one concise summary of what broke and what fixed it — not a turn-by-turn narration.
 
 **Exception — paid API calls:** this loop covers build/lint/type/runtime errors, not blind
-retries against live Tavily/OpenAI research calls. If making the pipeline actually work requires
+retries against live Tavily/Gemini/Groq calls. If making the pipeline actually work requires
 repeatedly re-running real research against those APIs, check with the user before burning
 credits on repeated attempts (mock data is fine for UI iteration — see `ProjectInst.md` §41).
 
 ## Reference
 
-The repo is public; this file is the only doc committed to git. `PRD.md`, `ProjectInst.md`,
-`SHIYAA-LOG.md`, and `context.md` are all gitignored — local reference material only, not part
-of the public history.
+**Public (committed):**
+
+- This file, plus engineering standards: `dev.md`
+- PR checklist: `pull_request_template.md`
+- Project overview: `README.md`
+- Public decision log: `DECISIONS.md`
+- Env var template (dummy values): `.env.example`
+
+**Private (gitignored — local reference material, not in git history):**
 
 - Product/architecture spec: `PRD.md`
 - Collaboration, research-quality, and coding rules: `ProjectInst.md`
 - Shiyaa's override decision log: `SHIYAA-LOG.md`
 - Session continuity: `context.md`
+- Phase/milestone build checklist: `ROADMAP.md`
